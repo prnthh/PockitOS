@@ -90,9 +90,6 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({ children }) => {
   }, [socket]);
 
   useEffect(() => {
-    // when players changes, log it
-    console.log("[players updated]",);
-    console.log(players);
     playersRef.current = players;
   }, [players]);
 

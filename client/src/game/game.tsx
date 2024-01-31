@@ -1,19 +1,20 @@
-import { OrbitControls } from '@react-three/drei'
-import { Sky, Grid, SpriteAnimator } from '@react-three/drei'
-import React, { useContext } from 'react'
-import { Canvas } from '@react-three/fiber'
+import { Sky, Grid, SpriteAnimator, OrbitControlsProps, OrbitControls } from '@react-three/drei'
+import React, { useContext, useEffect, useRef } from 'react'
+import { Canvas, useThree } from '@react-three/fiber'
 import { Suspense, useState } from 'react'
 import PlayerComponent from './playerComponent'
 import { SceneContext } from '../context/client'
+import { Euler, Vector3 } from 'three'
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 
 var options = {
   gridSize: [30, 16],
   cellSize: 1.0,
   cellThickness: 1.0,
-  cellColor: '#707070',
+  cellColor: '#70db84',
   sectionSize: 5.0,
   sectionThickness: 1.5,
-  sectionColor: '#1e1e1e', //'#00ffd9',
+  sectionColor: '#000000',
   fadeDistance: 50,
   fadeStrength: 1,
   followCamera: false,
@@ -22,19 +23,8 @@ var options = {
 
 export function Game() {
   const { players, socket } = useContext(SceneContext);
-  const [frameName, setFrameName] = useState('idle')
-  
-  const onClick = () => {
-    console.log('clicked')
-    setFrameName('celebration')
-  }
-  
-  const onEnd = ({ currentFrameName, currentFrame }: {currentFrameName: string, currentFrame: number}) => {
-    if (currentFrameName === 'celebration') {
-      setFrameName('idle')
-    }
-  }
-  
+
+
   return (
     <Canvas
     className='h-full w-full'
@@ -46,19 +36,8 @@ export function Game() {
     }}
     >
     <Suspense fallback={null}>
-    <OrbitControls
-    target={[2.5, 0.5, 0.5]}
-    maxPolarAngle={Math.PI * 0.4}
-    minPolarAngle={-Math.PI * 0.5}
-    enablePan={false}
-    maxDistance={30.0}
-    minDistance={1.0}
-    enableRotate={true}
-    enableZoom={true}
-    //enableDamping={true}
-    dampingFactor={0.1}
-    rotateSpeed={0.5}
-    />
+      <MyCamera />
+
     <ambientLight />
     <pointLight position={[10, 10, 10]} />
     
@@ -84,21 +63,6 @@ export function Game() {
     textureImageURL={'./alien.png'}
     />
     
-    <group onClick={onClick}>
-    <SpriteAnimator
-    scale={[4, 4, 4]}
-    position={[0.0, -2.0, -1.5]}
-    onLoopEnd={onEnd}
-    frameName={frameName}
-    fps={24}
-    animationNames={['idle', 'celebration']}
-    autoPlay={true}
-    loop={true}
-    alphaTest={0.01}
-    textureImageURL={'./boy_hash.png'}
-    textureDataURL={'./boy_hash.json'}
-    />
-    </group>
     {players.map((player) => {
       return <PlayerComponent key={player.id} player={player} />
     })}
@@ -106,4 +70,44 @@ export function Game() {
     <Grid {...options} position={[0, -3.0, 0.0]} />
     </Canvas>
     )
+  }
+
+  const defaultDistance = 10;
+
+  function MyCamera() {
+    const { players, socket } = useContext(SceneContext);
+    const [cameraOffset, setCameraOffset] = useState(new Vector3(0, defaultDistance, defaultDistance));
+
+    const myPlayer = players.find((player) => player.id === socket.id);
+    const myPosition = new Vector3(myPlayer?.position.x || 0, myPlayer?.position.y || 0, myPlayer?.position.z || 0);
+    
+    const camera = useThree(state => state.camera)
+    const orbitControlsRef = useRef<OrbitControlsImpl>(null)
+
+    useEffect(() => {
+      var cameraPosition = myPosition.clone();
+      cameraPosition.add(cameraOffset);
+      camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+      // cameraPosition += cameraAngle;
+      
+    }, [myPosition]);
+    return <OrbitControls
+    target={myPosition}
+    ref={orbitControlsRef}
+    maxPolarAngle={Math.PI * 0.4}
+    minPolarAngle={-Math.PI * 0.5}
+    enablePan={false}
+    maxDistance={30.0}
+    minDistance={1.0}
+    enableRotate={true}
+    enableZoom={true}
+    onChange={() => {
+      var cameraOffset = camera.position.clone();
+      cameraOffset.sub(myPosition);
+      setCameraOffset(cameraOffset);
+    }}
+    //enableDamping={true}
+    dampingFactor={0.1}
+    rotateSpeed={0.5}
+    />;
   }

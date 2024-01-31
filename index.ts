@@ -1,33 +1,16 @@
 import express, { Express, Request, Response } from "express";
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
+import { isPlayer, isServerEntity, removePlayerFromRegion, updatePlayerRegion } from "./modules/region";
+import { Entity, Player, Position, Region, ServerEntity } from "./interface";
+import { walkingEntity } from "./talkativeEntity";
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer);
 
-interface Position {
-    x: number;
-    y: number;
-    z: number;
-}
-
-interface Player {
-    id: string;
-    position: Position;
-    socket: Socket;
-    region?: string;
-}
-
-interface Region {
-    players: Record<string, Player>;
-    updates: any[];
-}
-
-const players: Record<string, Player> = {};
 const regions: Record<string, Region> = {};
-
-const REGION_SIZE = 100; // Define your region size
+const entities: Record<string, Entity> = {};
 
 app.get('/', (req, res) => {
     res.send('Hello World!');
@@ -40,95 +23,85 @@ io.on('connection', (socket: Socket) => {
         id: socket.id,
         position: { x: 0, y: 0, z: 0 },
         socket: socket,
-        // region: getRegionKey({ x: 0, y: 0, z: 0 })
     };
-    players[playerId] = defaultPlayer;
+    entities[playerId] = defaultPlayer;
     
     console.log(`User connected: ${playerId}`);
-    // addPlayerToRegion(players[playerId]);
-    updatePlayerRegion(players[playerId]);
+    updatePlayerRegion(entities[playerId], regions);
     
     socket.on('updatePosition', (position) => {
-        players[playerId].position = position;
-        updatePlayerRegion(players[playerId]);
-        var region = players[playerId].region
-        region && regions[region].updates.push({ type: 'positionUpdate', playerId: playerId, position });
+        updatePosition(entities[playerId], position);
     });
     
     socket.on('sendMessage', (message) => {
         console.log(`Message from ${playerId}: ${message.message}`);
-        var region = players[playerId].region
-        region && regions[region].updates.push({ type: 'newMessage', playerId: playerId, message: message.message,timestamp: new Date() });
+        sendMessage(entities[playerId], message.message);
+    });
+    
+    socket.on('interactWithEntity', (data) => {
+        const { entityId, action } = data;
+        // Implement logic based on action and entity
     });
     
     socket.on('disconnect', () => {
         console.log(`User disconnected: ${playerId}`);
-        removePlayerFromRegion(players[playerId]);
-        delete players[socket.id];
+        removePlayerFromRegion(entities[playerId], regions);
+        delete entities[socket.id];
     });
 });
 
-function getRegionKey(position: Position): string {
-    const xRegion = Math.floor(position.x / REGION_SIZE);
-    const yRegion = Math.floor(position.y / REGION_SIZE);
-    const zRegion = Math.floor(position.z / REGION_SIZE);
-    return `${xRegion}:${yRegion}:${zRegion}`;
+export function updatePosition(entity: Entity, position: Position,) {
+    entity.position = position;
+    updatePlayerRegion(entity, regions);
+    var region = entity.region
+    region && regions[region].updates.push({ type: 'positionUpdate', playerId: entity.id, position });
 }
 
-function addPlayerToRegion(player: Player) {
-    if(!player.region) return;
+export function sendMessage(entity: Entity, message: string) {
+    var region = entities[entity.id].region
+    region && regions[region].updates.push({ type: 'newMessage', playerId: entity.id, message: message,timestamp: new Date() });
+}
 
-    if (!regions[player.region]) {
-        regions[player.region] = { players: {}, updates: [] };
-    }
-
-    console.log(`Player ${player.id} joined region ${player.region}`);
-    regions[player.region].players[player.id] = player;
-    regions[player.region].updates.push({ type: 'playerEnter', player: {id: player.id, position: player.position } });
-    
-    const existingPlayers = [];
-    for (const id in regions[player.region].players) {
-        if (id !== player.id) { // Exclude the new player
-            const existingPlayer = regions[player.region].players[id];
-            existingPlayers.push({ id: existingPlayer.id, position: existingPlayer.position });
+function loadEntities(entitiesToLoad: ServerEntity[]) {
+    entitiesToLoad.forEach((entityToLoad, index) => {
+        entities[entityToLoad.id] = entityToLoad;
+        if(isServerEntity(entityToLoad))
+        {
+            entityToLoad.init();
+            updatePlayerRegion(entityToLoad, regions);
         }
-    }
-    player.socket.emit('regionState', existingPlayers); // Send all at once
-    
+    });
 }
 
-function removePlayerFromRegion(player: Player) {
-    if(!player.region) return;
-    if (regions[player.region]) {
-        delete regions[player.region].players[player.id];
-        if (Object.keys(regions[player.region].players).length === 0) {
-            delete regions[player.region];
-        }
-        regions[player.region]?.updates.push({ type: 'playerExit', player: {id: player.id, position: player.position} });
-    }
-}
-
-function updatePlayerRegion(player: Player) {
-    const newRegion = getRegionKey(player.position);
-    if (newRegion !== player.region) {
-        removePlayerFromRegion(player);
-        player.region = newRegion;
-        addPlayerToRegion(player);
-    }
-}
+const entityList = [walkingEntity];
+loadEntities(entityList);
 
 // Game tick for batching updates
 setInterval(() => {
     for (const regionKey in regions) {
         const region = regions[regionKey];
         if (region.updates.length > 0) {
-            for (const playerId in region.players) {
-                region.players[playerId].socket.emit('regionUpdate', region.updates);
+            for (const playerId in region.entities) {
+                const player = entities[playerId];
+                if(isPlayer(player))
+                {
+                    player.socket.emit('regionUpdate', region.updates);
+                }
             }
             region.updates.length = 0; // Clear the updates after sending
         }
     }
 }, 1000 / 60); // Example: 60 ticks per second
+
+setInterval(() => {
+    for (const entityId in entities) {
+        const entity = entities[entityId];
+        if(isServerEntity(entity))
+        {
+            entity.region && entity.behavior(regions[entity.region]);
+        }
+    }
+} , 1000 / 2); // Example: 2 ticks per second
 
 const PORT = process.env.PORT || 4000;
 httpServer.listen(PORT, () => {

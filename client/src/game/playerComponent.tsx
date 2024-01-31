@@ -4,6 +4,7 @@ import { useFrame, useLoader } from '@react-three/fiber';
 import { FBXLoader, SkeletonUtils } from 'three/examples/jsm/Addons.js';
 import { AnimationAction, AnimationMixer, Mesh, Vector3 } from 'three';
 import TWEEN from '@tweenjs/tween.js';
+import { SpriteAnimator } from '@react-three/drei';
 
 const PlayerComponent = ({player}: {player: Player}) => {
   const [position, setPosition] = useState(new Vector3(player.position.x, player.position.y, player.position.z)); 
@@ -37,10 +38,34 @@ const PlayerComponent = ({player}: {player: Player}) => {
 export default PlayerComponent;
 
 function BoxCharacter() {
-  return <mesh>
-  <boxGeometry />
-  <meshStandardMaterial color="hotpink" />
-  </mesh>
+  const [frameName, setFrameName] = useState('idle');
+
+  
+  const onClick = () => {
+    console.log('clicked')
+    setFrameName('celebration')
+  }
+  
+  const onEnd = ({ currentFrameName, currentFrame }: {currentFrameName: string, currentFrame: number}) => {
+    if (currentFrameName === 'celebration') {
+      setFrameName('idle')
+    }
+  }
+  return   <group onClick={onClick}>
+  <SpriteAnimator
+  scale={[4, 4, 4]}
+  position={[0.0, -2.0, 0]}
+  onLoopEnd={onEnd}
+  frameName={frameName}
+  fps={24}
+  animationNames={['idle', 'celebration']}
+  autoPlay={true}
+  loop={true}
+  alphaTest={0.01}
+  textureImageURL={'./boy_hash.png'}
+  textureDataURL={'./boy_hash.json'}
+  />
+  </group>
 }
 
 export const ANIMATIONS = {
