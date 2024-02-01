@@ -54,7 +54,7 @@ function BoxCharacter() {
   return   <group onClick={onClick}>
   <SpriteAnimator
   scale={[4, 4, 4]}
-  position={[0.0, -2.0, 0]}
+  position={[0.0, -1.5, 0]}
   onLoopEnd={onEnd}
   frameName={frameName}
   fps={24}

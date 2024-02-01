@@ -5,7 +5,9 @@ import { Suspense, useState } from 'react'
 import PlayerComponent from './playerComponent'
 import { SceneContext } from '../context/client'
 import { Euler, Vector3 } from 'three'
-import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
+import MyCamera from './camera'
+import { TerrainSimple } from './floor'
+import Terrain from './terrain'
 
 var options = {
   gridSize: [30, 16],
@@ -23,8 +25,10 @@ var options = {
 
 export function Game() {
   const { players, socket } = useContext(SceneContext);
-
-
+  
+  const myPlayer = players.find((player) => player.id === socket.id);
+  const myPosition = new Vector3(myPlayer?.position.x || 0, myPlayer?.position.y || 0, myPlayer?.position.z || 0);
+  
   return (
     <Canvas
     className='h-full w-full'
@@ -34,12 +38,15 @@ export function Game() {
       far: 1000,
       near: 0.1,
     }}
-    >
+    >      
+    <Sky sunPosition={[7, 5, 1]} />
+    <fog attach="fog" args={["white", 50, 105]} />
     <Suspense fallback={null}>
-      <MyCamera />
-
+    <MyCamera myPosition={myPosition}/>
+    
+    
     <ambientLight />
-    <pointLight position={[10, 10, 10]} />
+    <directionalLight castShadow position={[10, 10, 10]} />
     
     <SpriteAnimator
     scale={[4, 4, 4]}
@@ -66,48 +73,12 @@ export function Game() {
     {players.map((player) => {
       return <PlayerComponent key={player.id} player={player} />
     })}
+    <TerrainSimple />
+    <Terrain playerPosition={myPosition} />
     </Suspense>
-    <Grid {...options} position={[0, -3.0, 0.0]} />
+    {/* <Grid {...options} position={[0, -3.0, 0.0]} /> */}
     </Canvas>
     )
   }
-
-  const defaultDistance = 10;
-
-  function MyCamera() {
-    const { players, socket } = useContext(SceneContext);
-    const [cameraOffset, setCameraOffset] = useState(new Vector3(0, defaultDistance, defaultDistance));
-
-    const myPlayer = players.find((player) => player.id === socket.id);
-    const myPosition = new Vector3(myPlayer?.position.x || 0, myPlayer?.position.y || 0, myPlayer?.position.z || 0);
-    
-    const camera = useThree(state => state.camera)
-    const orbitControlsRef = useRef<OrbitControlsImpl>(null)
-
-    useEffect(() => {
-      var cameraPosition = myPosition.clone();
-      cameraPosition.add(cameraOffset);
-      camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
-      // cameraPosition += cameraAngle;
-      
-    }, [myPosition]);
-    return <OrbitControls
-    target={myPosition}
-    ref={orbitControlsRef}
-    maxPolarAngle={Math.PI * 0.4}
-    minPolarAngle={-Math.PI * 0.5}
-    enablePan={false}
-    maxDistance={30.0}
-    minDistance={1.0}
-    enableRotate={true}
-    enableZoom={true}
-    onChange={() => {
-      var cameraOffset = camera.position.clone();
-      cameraOffset.sub(myPosition);
-      setCameraOffset(cameraOffset);
-    }}
-    //enableDamping={true}
-    dampingFactor={0.1}
-    rotateSpeed={0.5}
-    />;
-  }
+  
+  
