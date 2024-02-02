@@ -73,9 +73,9 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({ children }) => {
       }
     });
 
-    newSocket.on('regionState', (existingPlayers: Player[]) => {
-      console.log('Received region state', existingPlayers);
-      setPlayers(existingPlayers);
+    newSocket.on('regionState', (regionUpdate: {id: string, entities: Player[]}) => {
+      console.log('Received region state', regionUpdate);
+      setPlayers(regionUpdate.entities);
     });
 
     return () => { newSocket.close(); };

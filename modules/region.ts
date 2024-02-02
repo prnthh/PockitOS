@@ -38,8 +38,12 @@ export function addPlayerToRegion(entity: Entity, regions: Record<string, Region
                 existingPlayers.push({ id: existingPlayer.id, position: existingPlayer.position });
             }
         }
+        const region = {
+            id: entity.region,
+            entities: existingPlayers
+        }
 
-        entity.socket.emit('regionState', existingPlayers); // Send all at once
+        entity.socket.emit('regionState', region); // Send all at once
     } else {
         regions[entity.region].entities[entity.id] = entity;
         regions[entity.region].updates.push({ type: 'entityEnter', entity: {id: entity.id, position: entity.position } });    

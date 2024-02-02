@@ -28,6 +28,12 @@ export function Game() {
   
   const myPlayer = players.find((player) => player.id === socket.id);
   const myPosition = new Vector3(myPlayer?.position.x || 0, myPlayer?.position.y || 0, myPlayer?.position.z || 0);
+
+  function onTerrainClick(event: any) {
+    console.log(event.point);
+    socket.emit('updatePosition', event.point);
+
+  }
   
   return (
     <Canvas
@@ -73,8 +79,8 @@ export function Game() {
     {players.map((player) => {
       return <PlayerComponent key={player.id} player={player} />
     })}
-    <TerrainSimple />
-    <Terrain playerPosition={myPosition} />
+    <TerrainSimple onClick={onTerrainClick} position={myPosition}/>
+    {/* <Terrain playerPosition={myPosition} /> */}
     </Suspense>
     {/* <Grid {...options} position={[0, -3.0, 0.0]} /> */}
     </Canvas>
