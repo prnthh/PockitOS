@@ -4,35 +4,43 @@ import { useEffect, useRef, useState } from "react";
 import { MeshStandardMaterial, PlaneGeometry, TextureLoader, Vector3 } from "three";
 
 const meshWidth = 100;
-const scale = 1;
-const tileWidth = meshWidth * scale;
 
-export const TerrainSimple = ({onClick, position}: {onClick?: ((event: ThreeEvent<MouseEvent>) => void), position: Vector3 }) => {
-  const heightMap = useLoader(TextureLoader, "elevation.png");
-  const normals = useLoader(TextureLoader, "normals.png");
-  const colors = useLoader(TextureLoader, "colors.png");
-  const ref = useRef<MeshStandardMaterial>(null);
+export const TerrainLoader = ({onClick, position}: {onClick: ((event: ThreeEvent<MouseEvent>) => void), position: Vector3}) => {
+  const tiles = ['0:0:0', '-1:0:0', '-1:0:-1', '0:0:-1'];
+  return <>{tiles.map((tile, index) => {
 
+    return <TerrainSimple key={index} onClick={onClick} position={tile} />
+  })}</>
+}
+
+export const TerrainSimple = ({onClick, position}: {onClick?: ((event: ThreeEvent<MouseEvent>) => void), position: string }) => {
+  const [initialized, setInitialized] = useState(false);
+
+  const [x, y, z] = position.split(':').map(Number);
+
+  const tilePosition = new Vector3((x * meshWidth) + (meshWidth / 2)
+  , y * meshWidth, z * meshWidth + meshWidth / 2);
+  
+  const heightMap = useLoader(TextureLoader, `world/:${z}:${x}/elevation.png`);
+  const colors = useLoader(TextureLoader, `world/:${z}:${x}/colors.png`);
+  
   const [mapGeometry, setMapGeometry] = useState<PlaneGeometry>(new PlaneGeometry(meshWidth, meshWidth, 256, 256));
   
-  const tilePosition = new Vector3(tileWidth / 2, 0, tileWidth / 2);
   
-  useEffect(() => {  
-    var imagedata = getImageData( heightMap.image );
-    if (!imagedata) return;
-    var color = getPixel( imagedata, 0, 0 );
-    console.log( color.r, color.g, color.b, color.a );
-    
-    computeHeight();
-  }, [heightMap]);
+  useEffect(() => { 
+    if (!initialized) {
+      setInitialized(true);
+      computeHeight();
+    } 
+  }, [heightMap, initialized]);
   
   function computeHeight() {
-
+    
     var data = getImageData( heightMap.image );
     if (!data) return;
-
+    
     const clone = mapGeometry.clone()
-    const geometry = clone
+    const geometry = clone.rotateX(-Math.PI / 2);
     const positions = geometry.attributes.position.array
     let w, h, x, y
     
@@ -40,28 +48,27 @@ export const TerrainSimple = ({onClick, position}: {onClick?: ((event: ThreeEven
     const height = geometry.parameters.heightSegments + 1
     const widthStep = heightMap.image.width / width
     const heightStep = heightMap.image.height / height
-
-    for (let i = 1; i < positions.length; i += 3) {
+    
+    for (let i = 0; i < positions.length; i += 3) {
       w = (i / 3) % width
       h = i / 3 / width
       
-      x = Math.round(w * widthStep)
-      y = Math.round(h * heightStep)
+      x = Math.floor(w * widthStep)
+      y = Math.floor(h * heightStep)
       
       const displacement = data.data[x * 4 + y * 4 * heightMap.image.width]
-      positions[i + 1] = displacement / 20.55 - 3
+      positions[i + 1] = (displacement / 5) - 4
     }
     
     geometry.attributes.position.needsUpdate = true
     geometry.computeVertexNormals()
-
+    
     setMapGeometry(geometry)
   }
   
   return <group>
   <Plane
-  scale={scale}
-  rotation={[-Math.PI / 2, 0, 0]}
+  // rotation={[-Math.PI / 2, 0, 0]}
   position={tilePosition}
   args={[meshWidth, meshWidth, 128, 128]}
   onClick={(e)=>{console.log(e); e.point.y += 3; onClick && onClick(e)}} 
@@ -70,7 +77,6 @@ export const TerrainSimple = ({onClick, position}: {onClick?: ((event: ThreeEven
   receiveShadow
   >
   <meshStandardMaterial
-  ref={ref}
   attach="material"
   color="white"
   map={colors}

@@ -3,7 +3,7 @@ import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { isPlayer, isServerEntity, removePlayerFromRegion, updatePlayerRegion } from "./modules/region";
 import { Entity, Player, Position, Region, ServerEntity } from "./interface";
-import { walkingEntity } from "./talkativeEntity";
+import { walkingEntity } from "./entities/talkativeEntity";
 
 const app = express();
 const httpServer = createServer(app);

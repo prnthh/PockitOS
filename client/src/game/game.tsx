@@ -6,7 +6,7 @@ import PlayerComponent from './playerComponent'
 import { SceneContext } from '../context/client'
 import { Euler, Vector3 } from 'three'
 import MyCamera from './camera'
-import { TerrainSimple } from './floor'
+import { TerrainLoader, TerrainSimple } from './floor'
 import Terrain from './terrain'
 
 var options = {
@@ -79,7 +79,7 @@ export function Game() {
     {players.map((player) => {
       return <PlayerComponent key={player.id} player={player} />
     })}
-    <TerrainSimple onClick={onTerrainClick} position={myPosition}/>
+    <TerrainLoader onClick={onTerrainClick} position={myPosition}/>
     {/* <Terrain playerPosition={myPosition} /> */}
     </Suspense>
     {/* <Grid {...options} position={[0, -3.0, 0.0]} /> */}
