@@ -87,3 +87,20 @@ export function updatePlayerRegion(player: GameEntity, regions: Record<string, R
         addPlayerToRegion(player, regions);
     }
 }
+
+export function getAdjacentRegions(regionKey: string): string[] {
+    const [x, y, z] = regionKey.split(':').map(Number);
+    const adjacentRegions = [];
+    
+    for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+            for (let dz = -1; dz <= 1; dz++) {
+                if (dx !== 0 || dy !== 0 || dz !== 0) {
+                    adjacentRegions.push(`${x + dx}:${y + dy}:${z + dz}`);
+                }
+            }
+        }
+    }
+    
+    return adjacentRegions;
+}

@@ -17,7 +17,6 @@ export const TerrainLoader = ({onClick}: {onClick: ((event: ThreeEvent<MouseEven
 
 export const TerrainSimple = ({onClick, position}: {onClick?: ((event: ThreeEvent<MouseEvent>) => void), position: string }) => {
   const [initialized, setInitialized] = useState(false);
-
   const [x, y, z] = position.split(':').map(Number);
 
   const tilePosition = new Vector3((x * meshWidth) + (meshWidth / 2), y * meshWidth, z * meshWidth + meshWidth / 2);

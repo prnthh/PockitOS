@@ -1,7 +1,7 @@
 import express, { Express, Request, Response } from "express";
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
-import { isPlayer, isServerEntity, removePlayerFromRegion, updatePlayerRegion } from "./modules/region";
+import { getAdjacentRegions, isPlayer, isServerEntity, removePlayerFromRegion, updatePlayerRegion } from "./modules/region";
 import { GameEntity, PlayerEntity, ServerEntity } from "./interface";
 import TalkativeEntity from "./entities/talkativeEntity";
 import { Position, PositionUpdate, Region, SendMessage } from "./client/src/context/interface";
@@ -131,20 +131,3 @@ const PORT = process.env.PORT || 4000;
 httpServer.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
-
-export function getAdjacentRegions(regionKey: string): string[] {
-    const [x, y, z] = regionKey.split(':').map(Number);
-    const adjacentRegions = [];
-    
-    for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-            for (let dz = -1; dz <= 1; dz++) {
-                if (dx !== 0 || dy !== 0 || dz !== 0) {
-                    adjacentRegions.push(`${x + dx}:${y + dy}:${z + dz}`);
-                }
-            }
-        }
-    }
-    
-    return adjacentRegions;
-}

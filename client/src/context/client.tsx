@@ -1,6 +1,6 @@
 import React, { createContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { Player, PlayerEnter, PositionUpdate, Region, Regions, SendMessage, ServerUpdate, id } from './interface';
+import { Player, PlayerEnter, Position, PositionUpdate, Region, Regions, SendMessage, ServerUpdate, id } from './interface';
 
 
 interface SceneContextValue {
@@ -74,10 +74,7 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({ children }) => {
         newRegions[regionId] = region;
         return newRegions;
       });
-      
-      
-    } );
-    
+    });
     
     newSocket.on('regionState', (region: Region) => {
       console.log('Received region state', region);
@@ -105,7 +102,7 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({ children }) => {
     regionsRef.current = regions;
   } , [regions]);
   
-  const updatePlayerPosition = useCallback((position: { x: number; y: number; z: number }) => {
+  const updatePlayerPosition = useCallback((position: Position) => {
     socket.emit('updatePosition', position);
   }, [socket]);
   

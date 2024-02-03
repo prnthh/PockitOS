@@ -33,7 +33,7 @@ const PlayerComponent = ({player, control}: {player: Player, control: OrbitContr
     return () => clearTimeout(timer);
   }, [player.message]);
   
-  const isPlayer = player.id === socket.id;
+  const isPlayer = player?.id === socket?.id;
   
   useFrame(() => {
     TWEEN.update();
