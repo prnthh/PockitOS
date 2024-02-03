@@ -64,15 +64,17 @@ export function sendMessage(entity: GameEntity, message: string) {
 
 // entity initialization
 
-function loadEntities(entitiesToLoad: (new (id: string) => GameEntity)[]) {
-    entitiesToLoad.forEach((EntityType, index) => {
-        const entity = new EntityType(`Entity${index}`);
-        entities[entity.id] = entity;
-        movePlayerRegion(entity, regions);
+function loadEntities(entitiesToLoad: ServerEntity[]) {
+    entitiesToLoad.forEach((Entity, index) => {
+        entities[Entity.id] = Entity;
+        movePlayerRegion(Entity, regions);
     });
 }
 
-const entityTypes: (new (id: string) => ServerEntity)[] = [TalkativeEntity];
+const entityTypes = [
+    new TalkativeEntity('Goblin1', { x: 3, y: 0, z: 3 }),
+    new TalkativeEntity('Goblin2', { x: 5, y: 0, z: 8 }),
+];
 loadEntities(entityTypes);
 
 // Game tick for batching updates

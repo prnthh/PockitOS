@@ -1,21 +1,19 @@
 import { sendMessage, updatePosition } from "..";
-import { Region } from "../client/src/context/interface";
+import { Position, Region } from "../client/src/context/interface";
 import { ServerEntity } from "../interface";
 
-const startPosition = { x: 3, y: 0, z: 3 };
 const ramblingMessages = [
-    "I wonder why the sky is blue...",
+    "Moo",
     "Do fish ever get thirsty?",
     "Follow me!",
     // Add more random messages
 ];
 
 class TalkativeEntity extends ServerEntity {
-    startPosition: { x: number; y: number; z: number };
-
-    constructor(name: string) {
-        super(name);
-        this.startPosition = { x: 3, y: 0, z: 3 };
+    startPosition: Position;
+    constructor(name: string, startPosition: Position) {
+        super(name, startPosition);
+        this.startPosition = startPosition;
     }
 
     behavior(region: Region): void {
@@ -34,7 +32,7 @@ class TalkativeEntity extends ServerEntity {
         } else {
             if(this.position.x !== this.startPosition.x) {
                 console.log(this.position, this.startPosition);
-                this.updatePosition({ x: 3, y: 0, z: 3 });
+                this.updatePosition(this.startPosition);
                 this.sendMessage("I'm so lonely...");
             }
         }
