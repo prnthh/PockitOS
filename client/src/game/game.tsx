@@ -11,7 +11,7 @@ import Terrain from './terrain'
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 
 export function Game() {
-  const { regions, socket } = useContext(SceneContext);
+  const { regions, players, socket } = useContext(SceneContext);
   const [controlRef, setControlRef] = useState<OrbitControlsImpl | null>(null)
 
   function onTerrainClick(event: any) {
@@ -64,11 +64,14 @@ export function Game() {
     {Object.keys(regions).map((regionId) => {
       const region = regions[regionId];
       return <>
-      {Object.values(region.entities).map((player) => {
-        return <PlayerComponent key={player.id} player={player} control={controlRef} />
-      })}
+      
       </>
     } )}
+    {Object.keys(players).map((playerId) => {
+      const player = players[playerId];
+      return <PlayerComponent key={player.id} player={player} control={controlRef} />
+    }
+    )}
           <TerrainLoader onClick={onTerrainClick} />
 
     </Suspense>

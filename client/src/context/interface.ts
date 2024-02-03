@@ -6,15 +6,10 @@ export interface Position {
     z: number;
 }
 
-
 export interface Region {
     id: string;
     entities: (Record<string, Player>);
     updates: ServerUpdate[];
-}
-
-export interface Regions {
-    [id: string]: Region;
 }
 
 export interface Player {

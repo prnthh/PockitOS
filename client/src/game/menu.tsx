@@ -4,24 +4,23 @@ import { SceneContext } from '../context/client';
 
 function Menu() {
     const { regions, socket } = useContext(SceneContext);
-
+    
     return <>
     <div className="absolute">
     <div className="border border-black">players:
-    {/* {players.map((player) => <div key={player.id}>
-    {player.id} {JSON.stringify(player.position)}
+    
+    {Object.keys(regions).map((region, id) => {
+        return <div key={id}>
+        {region}
+        {regions[region].map((player, id) => {
+            return <div key={id}>
+            {player}
+            </div>})
+        }
+        </div>
+    })}
     </div>
-    )} */}
-    {Object.values(regions).map((region, id) => <div key={id}>
-    {id} 
-    {Object.values(region).map((player) => <div key={player.id}>
-    {player.id} {JSON.stringify(player.position)}
-    </div>
-    )}
-    </div>
-    )}
-    </div>
-
+    
     </div>
     <Chat />
     </>
@@ -32,7 +31,7 @@ function Chat() {
     const [data, setData] = React.useState<any[]>([]);
     const [message, setMessage] = React.useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
-
+    
     useEffect(() => {
         if(socket) {
             socket.on('regionUpdate', ({id, updates}: {id: string, updates: any[]}) => {
@@ -43,29 +42,29 @@ function Chat() {
                 });
             });
         }
-
+        
         return () => {
             if(socket) {
                 socket.off('message');
             }
         };
     }, [socket]);
-
+    
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     } , [data]);
-
+    
     function addMessage(message: any) {
         setData(prevData => [...prevData, message]);
     }
-
+    
     function sendMessage() {
         if(message.length > 0) {
             socket.emit('sendMessage', { message: message });
             setMessage('');
         }
     }
-
+    
     return <div className="absolute bottom-0">
     <div className='bg-gray-200/30'>
     <div className='max-h-36 overflow-y-auto text-left p-1'>
@@ -74,7 +73,7 @@ function Chat() {
     </div>
     )}
     <div ref={messagesEndRef} />
-
+    
     </div>
     <div className='bg-gray-200 p-1 flex'>
     <input className='flex flex-grow' type="text" id="message" name="message"
@@ -89,7 +88,7 @@ function Chat() {
     <button className="bg-gray-400 hover:bg-gray-500 px-1" onClick={() => sendMessage()}>→</button>
     </div>
     </div>
-
+    
     </div>
 }
 

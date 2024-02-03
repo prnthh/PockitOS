@@ -1,30 +1,30 @@
 import React, { createContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { Player, PlayerEnter, Position, PositionUpdate, Region, Regions, SendMessage, ServerUpdate, id } from './interface';
+import { Player, PlayerEnter, Position, PositionUpdate, Region, SendMessage, ServerUpdate, id } from './interface';
 
 
 interface SceneContextValue {
   socket: any;
-  regions: Regions;
+  regions: Record<id, id[]>;
+  players: Record<id, Player>;
   updatePlayerPosition: (position: { x: number; y: number; z: number }) => void;
   sendMessage: (message: string) => void;
 }
 
 export const SceneContext = createContext<SceneContextValue>({
   regions: {},
+  players: {},
   updatePlayerPosition: () => {},
   sendMessage: () => {},
   socket: null,
 });
 
-interface SceneProviderProps {
-  children: ReactNode;
-}
-
-export const SceneProvider: React.FC<SceneProviderProps> = ({ children }) => {
-  const [regions, setRegions] = useState<Regions>({});
+export const SceneProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [regions, setRegions] = useState<Record<id, id[]>>({});
+  const [players, setPlayers] = useState<Record<id, Player>>({});
   const [socket, setSocket] = useState<any>(null);
-  const regionsRef = useRef<Regions>();
+  const regionsRef = useRef<Record<id, id[]>>();
+  const playersRef = useRef<Record<id, Player>>();
 
   
   useEffect(() => {
@@ -36,42 +36,33 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({ children }) => {
     });
     
     newSocket.on('regionUpdate', ({regionId, updates}: {regionId: string, updates: ServerUpdate[]}) => {
-      console.log('Received region update', regionId, updates);      
-      var region = regionsRef.current?.[regionId] || {
-        id: regionId,
-        entities: {},
-      } as Region;
+      console.log(' :::: Region update ::::\n', regionId, updates);      
+      var region: id[] = regionsRef.current?.[regionId] || []; // array of entityids in region
       
       for (const update of updates) {
-        console.log('[Processing update]', update);
         if (update.type === 'positionUpdate') {
           const messageUpdate = update as PositionUpdate
           const id = messageUpdate.player.id;
-          region.entities[id].position = messageUpdate.player.position;
+          if(playersRef.current)
+            playersRef.current[id].position = messageUpdate.player.position;
         } else if (update.type === 'playerEnter') {
           const messageUpdate = update as PlayerEnter
-          region.entities[messageUpdate.player.id] = {
-            id: messageUpdate.player.id,
-            position: messageUpdate.player.position,
-          };
-          // remove from other regions
-          for (const regionId in regionsRef.current) {
-            if (regionId !== region.id) {
-              delete regionsRef.current[regionId].entities[messageUpdate.player.id];
-            }
-          }
+          if(playersRef.current)
+            playersRef.current[messageUpdate.player.id] = messageUpdate.player;
+          if(region.indexOf(messageUpdate.player.id) === -1)
+          region.push(messageUpdate.player.id);
+          // todo: maybe remove from other regions
         } else if (update.type === 'playerExit') {
-          console.log('Player exit', update);
           const messageUpdate = update as PlayerEnter
-          delete region.entities[messageUpdate.player.id];
+          region = region.filter((id) => id !== messageUpdate.player.id);
         } else if (update.type === 'newEntity') {
           
         } else if (update.type === 'newMessage') {
           const messageUpdate = update as SendMessage
-          // Handle new message
           const playerId = messageUpdate.playerId;
           const message = messageUpdate.message;
-          region.entities[playerId].message = message;
+          if(playersRef.current)
+            playersRef.current[playerId].message = message;
           
         }
       }
@@ -84,20 +75,23 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({ children }) => {
     });
     
     newSocket.on('regionState', (region: Region) => {
-      console.log('Received region state', region);
+      console.log(':::: Region state ::::\n', region);
       // setPlayers(regionUpdate.entities);
       setRegions((prevRegions) => {
         const newRegions = { ...prevRegions };
-        var newRegion = newRegions[region.id] || {
-          id: region.id,
-          entities: {},
-        };
-        for (const entity of Object.keys(region.entities)) {
-          newRegion.entities[entity] = region.entities[entity];
-        }
-        newRegions[region.id] = newRegion;
-        
+        newRegions[region.id] = [
+          // ...newRegions[region.id],
+          ...Object.keys(region.entities)
+        ]
         return newRegions;
+      });
+
+      setPlayers((prevPlayers) => {
+        const newPlayers = { ...prevPlayers };
+        for (const id in region.entities) {
+          newPlayers[id] = region.entities[id];
+        }
+        return newPlayers;
       });
     });
     
@@ -108,6 +102,11 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({ children }) => {
     console.log('[Regions updated]:', regions);
     regionsRef.current = regions;
   } , [regions]);
+
+  useEffect(() => {
+    console.log('[Players updated]:', players);
+    playersRef.current = players;
+  } , [players]);
   
   const updatePlayerPosition = useCallback((position: Position) => {
     socket.emit('updatePosition', position);
@@ -119,6 +118,7 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({ children }) => {
   
   const contextValue = {
     socket,
+    players,
     regions,
     updatePlayerPosition,
     sendMessage,

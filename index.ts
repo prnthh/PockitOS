@@ -1,7 +1,7 @@
 import express, { Express, Request, Response } from "express";
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
-import { getAdjacentRegions, isPlayer, isServerEntity, removePlayerFromRegion, updatePlayerRegion } from "./modules/region";
+import { getAdjacentRegions, isPlayer, isServerEntity, movePlayerRegion, removePlayerFromRegion } from "./modules/region";
 import { GameEntity, PlayerEntity, ServerEntity } from "./interface";
 import TalkativeEntity from "./entities/talkativeEntity";
 import { Position, PositionUpdate, Region, SendMessage } from "./client/src/context/interface";
@@ -21,7 +21,7 @@ io.on('connection', (socket: Socket) => {
     // init new player
     const playerId = socket.id;
     entities[playerId] = new PlayerEntity(socket.id, socket);
-    updatePlayerRegion(entities[playerId], regions);
+    movePlayerRegion(entities[playerId], regions);
     
     socket.on('updatePosition', (position) => {
         updatePosition(entities[playerId], position as Position);
@@ -44,7 +44,7 @@ io.on('connection', (socket: Socket) => {
 export function updatePosition(entity: GameEntity, position: Position,) {
     if(position.y < 0) return;
     entity.position = position;
-    updatePlayerRegion(entity, regions);
+    movePlayerRegion(entity, regions);
     var region = entity.region;
     region && regions[region].updates.push({ 
         type: 'positionUpdate', 
@@ -68,7 +68,7 @@ function loadEntities(entitiesToLoad: (new (id: string) => GameEntity)[]) {
     entitiesToLoad.forEach((EntityType, index) => {
         const entity = new EntityType(`Entity${index}`);
         entities[entity.id] = entity;
-        updatePlayerRegion(entity, regions);
+        movePlayerRegion(entity, regions);
     });
 }
 
