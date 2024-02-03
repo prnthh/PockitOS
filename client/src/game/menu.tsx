@@ -1,44 +1,27 @@
-import React, { useContext, useEffect } from 'react';
+import React, { useContext, useEffect, useRef } from 'react';
 import logo from './logo.svg';
 import { SceneContext } from '../context/client';
 
 function Menu() {
-    const { players, socket } = useContext(SceneContext);
+    const { regions, socket } = useContext(SceneContext);
 
-    function moveDirection(direction: string) {
-        var myPlayer = players.find((player) => player.id === socket.id);
-        if(myPlayer)
-        {
-            var myPosition = myPlayer.position;
-            if(direction === 'up') {
-                myPosition.z -= 1;
-            }
-            else if(direction === 'down') {
-                myPosition.z += 1;
-            }
-            else if(direction === 'left') {
-                myPosition.x -= 1;
-            }
-            else if(direction === 'right') {
-                myPosition.x += 1;
-            }
-            socket.emit('updatePosition', myPosition);
-        }
-    }
-    
-    
     return <>
-        <div className="absolute">
+    <div className="absolute">
     <div className="border border-black">players:
-    {players.map((player) => <div key={player.id}>
+    {/* {players.map((player) => <div key={player.id}>
+    {player.id} {JSON.stringify(player.position)}
+    </div>
+    )} */}
+    {Object.values(regions).map((region, id) => <div key={id}>
+    {id} 
+    {Object.values(region).map((player) => <div key={player.id}>
     {player.id} {JSON.stringify(player.position)}
     </div>
     )}
     </div>
-    
-    
-    
-    {['left', 'down', 'up', 'right'].map((direction) => <button className='border px-1 ' key={direction} onClick={() => moveDirection(direction)}>{direction}</button>)}
+    )}
+    </div>
+
     </div>
     <Chat />
     </>
@@ -47,48 +30,66 @@ function Menu() {
 function Chat() {
     const { socket } = useContext(SceneContext);
     const [data, setData] = React.useState<any[]>([]);
-    const [message, setMessage] = React.useState('hello world');
+    const [message, setMessage] = React.useState('');
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if(socket) {
-            socket.on('regionUpdate', (message: any) => {
-                message.forEach((element: any) => {
-                    console.log('Received message:', element);
+            socket.on('regionUpdate', ({id, updates}: {id: string, updates: any[]}) => {
+                updates.forEach((element: any) => {
                     if(element.type === 'newMessage') {
                         addMessage(element);
                     }
                 });
             });
         }
-        
+
         return () => {
             if(socket) {
                 socket.off('message');
             }
         };
     }, [socket]);
-    
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    } , [data]);
+
     function addMessage(message: any) {
-        console.log('addMessage', message);
-        console.log('data', data);
         setData(prevData => [...prevData, message]);
     }
-    
+
+    function sendMessage() {
+        if(message.length > 0) {
+            socket.emit('sendMessage', { message: message });
+            setMessage('');
+        }
+    }
+
     return <div className="absolute bottom-0">
-    <div>
+    <div className='bg-gray-200/30'>
+    <div className='max-h-36 overflow-y-auto text-left p-1'>
     {data.map((element) => <div key={element.timestamp}>
     {element.playerId}: {element.message}
     </div>
     )}
-    
-    <div className='bg-gray-200 p-1'>
-    <input type="text" id="message" name="message" value={message} onChange={(e)=>setMessage(e.target.value)}/>
-    <button onClick={() => {
-        socket.emit('sendMessage', { message: message });
-    }}>send</button>
+    <div ref={messagesEndRef} />
+
+    </div>
+    <div className='bg-gray-200 p-1 flex'>
+    <input className='flex flex-grow' type="text" id="message" name="message"
+    placeholder="enter a message"
+    value={message} onChange={(e)=>{setMessage(e.target.value)}}
+    onKeyDown={(e) => {
+        if(e.key === 'Enter' && message.length > 0) {
+            sendMessage();
+        }}
+    }
+    />
+    <button className="bg-gray-400 hover:bg-gray-500 px-1" onClick={() => sendMessage()}>→</button>
     </div>
     </div>
-    
+
     </div>
 }
 

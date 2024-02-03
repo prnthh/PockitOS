@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { MeshStandardMaterial, PlaneGeometry, TextureLoader, Vector3 } from "three";
 
 const meshWidth = 100;
+const displacementScale = 20;
+const displacementBias = -4;
 
-export const TerrainLoader = ({onClick, position}: {onClick: ((event: ThreeEvent<MouseEvent>) => void), position: Vector3}) => {
+export const TerrainLoader = ({onClick}: {onClick: ((event: ThreeEvent<MouseEvent>) => void)}) => {
   const tiles = ['0:0:0', '-1:0:0', '-1:0:-1', '0:0:-1'];
   return <>{tiles.map((tile, index) => {
 
@@ -18,14 +20,12 @@ export const TerrainSimple = ({onClick, position}: {onClick?: ((event: ThreeEven
 
   const [x, y, z] = position.split(':').map(Number);
 
-  const tilePosition = new Vector3((x * meshWidth) + (meshWidth / 2)
-  , y * meshWidth, z * meshWidth + meshWidth / 2);
+  const tilePosition = new Vector3((x * meshWidth) + (meshWidth / 2), y * meshWidth, z * meshWidth + meshWidth / 2);
   
   const heightMap = useLoader(TextureLoader, `world/:${z}:${x}/elevation.png`);
   const colors = useLoader(TextureLoader, `world/:${z}:${x}/colors.png`);
   
   const [mapGeometry, setMapGeometry] = useState<PlaneGeometry>(new PlaneGeometry(meshWidth, meshWidth, 256, 256));
-  
   
   useEffect(() => { 
     if (!initialized) {
@@ -57,7 +57,7 @@ export const TerrainSimple = ({onClick, position}: {onClick?: ((event: ThreeEven
       y = Math.floor(h * heightStep)
       
       const displacement = data.data[x * 4 + y * 4 * heightMap.image.width]
-      positions[i + 1] = (displacement / 5) - 4
+      positions[i + 1] = (displacement / displacementScale) + displacementBias;
     }
     
     geometry.attributes.position.needsUpdate = true
@@ -68,10 +68,9 @@ export const TerrainSimple = ({onClick, position}: {onClick?: ((event: ThreeEven
   
   return <group>
   <Plane
-  // rotation={[-Math.PI / 2, 0, 0]}
   position={tilePosition}
   args={[meshWidth, meshWidth, 128, 128]}
-  onClick={(e)=>{console.log(e); e.point.y += 3; onClick && onClick(e)}} 
+  onClick={(e)=>{e.point.y += 3; onClick && onClick(e)}} 
   geometry={mapGeometry}
   castShadow
   receiveShadow
@@ -81,10 +80,6 @@ export const TerrainSimple = ({onClick, position}: {onClick?: ((event: ThreeEven
   color="white"
   map={colors}
   metalness={0.2}
-  // normalMap={normals}
-  // displacementMap={heightMap}
-  // displacementScale={5}
-  // displacementBias={-10}
   />
   </Plane>
   </group>

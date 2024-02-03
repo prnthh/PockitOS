@@ -1,28 +1,17 @@
 import React, { createContext, useState, useCallback, ReactNode, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
+import { Player, PlayerEnter, PositionUpdate, Region, Regions, SendMessage, ServerUpdate, id } from './interface';
 
-export interface Player {
-  id: string;
-  position: { x: number; y: number; z: number };
-  // Add other player properties as needed
-}
-
-interface Entity {
-  id: string;
-  // Entity properties
-}
 
 interface SceneContextValue {
   socket: any;
-  players: Player[];
-  entities: Entity[];
+  regions: Regions;
   updatePlayerPosition: (position: { x: number; y: number; z: number }) => void;
   sendMessage: (message: string) => void;
 }
 
 export const SceneContext = createContext<SceneContextValue>({
-  players: [],
-  entities: [],
+  regions: {},
   updatePlayerPosition: () => {},
   sendMessage: () => {},
   socket: null,
@@ -33,73 +22,103 @@ interface SceneProviderProps {
 }
 
 export const SceneProvider: React.FC<SceneProviderProps> = ({ children }) => {
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [entities, setEntities] = useState<Entity[]>([]);
+  const [regions, setRegions] = useState<Regions>({});
   const [socket, setSocket] = useState<any>(null);
+  const regionsRef = useRef<Regions>();
 
-  const playersRef = useRef<Player[]>([]); // Ref to hold the current players state
-
+  
   useEffect(() => {
-    const newSocket = io("http://localhost:4000", { transports: ['websocket', 'polling', 'flashsocket'] }); // Adjust the URL to match your server
+    const newSocket = io("http://localhost:4000", { transports: ['websocket', 'polling', 'flashsocket'] });
     setSocket(newSocket);
-
+    
     newSocket.on('connect', () => {
       console.log('Connected!' + newSocket.id);
     });
-
-    newSocket.on('regionUpdate', (updates: any[]) => {
-      console.log('Received region update', updates);
-
+    
+    newSocket.on('regionUpdate', ({regionId, updates}: {regionId: string, updates: ServerUpdate[]}) => {
+      console.log('Received region update', regionId, updates);      
+      var region = regionsRef.current?.[regionId] || {
+        id: regionId,
+        entities: {},
+      } as Region;
+      
       for (const update of updates) {
+        console.log('[Processing update]', update);
         if (update.type === 'positionUpdate') {
-          const playerIndex = playersRef.current.findIndex((player) => player.id === update.playerId);
-          if (playerIndex !== -1) {
-            setPlayers((prevPlayers) => {
-              const newPlayers = [...prevPlayers];
-              newPlayers[playerIndex].position = update.position;
-              return newPlayers;
-            });
-          }
+          const messageUpdate = update as PositionUpdate
+          const id = messageUpdate.player.id;
+          region.entities[id].position = messageUpdate.player.position;
         } else if (update.type === 'playerEnter') {
-          setPlayers((prevPlayers) => [...prevPlayers, update.player]);
+          const messageUpdate = update as PlayerEnter
+          region.entities[messageUpdate.player.id] = {
+            id: messageUpdate.player.id,
+            position: messageUpdate.player.position,
+          };
         } else if (update.type === 'playerExit') {
-          console.log('playerExit', update);
-          setPlayers((prevPlayers) => prevPlayers.filter((player) => player.id !== update.player.id));
+          const messageUpdate = update as PlayerEnter
+          delete region.entities[messageUpdate.player.id];
         } else if (update.type === 'newEntity') {
-          setEntities((prevEntities) => [...prevEntities, update]);
+          
         } else if (update.type === 'newMessage') {
+          const messageUpdate = update as SendMessage
           // Handle new message
+          const playerId = messageUpdate.playerId;
+          const message = messageUpdate.message;
+          region.entities[playerId].message = message;
+          
         }
       }
+      
+      setRegions((prevRegions) => {
+        const newRegions = { ...prevRegions };
+        newRegions[regionId] = region;
+        return newRegions;
+      });
+      
+      
+    } );
+    
+    
+    newSocket.on('regionState', (region: Region) => {
+      console.log('Received region state', region);
+      // setPlayers(regionUpdate.entities);
+      setRegions((prevRegions) => {
+        const newRegions = { ...prevRegions };
+        var newRegion = newRegions[region.id] || {
+          id: region.id,
+          entities: {},
+        };
+        for (const entity of Object.keys(region.entities)) {
+          newRegion.entities[entity] = region.entities[entity];
+        }
+        newRegions[region.id] = newRegion;
+        
+        return newRegions;
+      });
     });
-
-    newSocket.on('regionState', (regionUpdate: {id: string, entities: Player[]}) => {
-      console.log('Received region state', regionUpdate);
-      setPlayers(regionUpdate.entities);
-    });
-
+    
     return () => { newSocket.close(); };
   }, [setSocket]);
-
+  
+  useEffect(() => {
+    console.log('[Regions updated]:', regions);
+    regionsRef.current = regions;
+  } , [regions]);
+  
   const updatePlayerPosition = useCallback((position: { x: number; y: number; z: number }) => {
     socket.emit('updatePosition', position);
   }, [socket]);
-
+  
   const sendMessage = useCallback((message: string) => {
     socket.emit('sendMessage', message);
   }, [socket]);
-
-  useEffect(() => {
-    playersRef.current = players;
-  }, [players]);
-
+  
   const contextValue = {
     socket,
-    players,
-    entities,
+    regions,
     updatePlayerPosition,
     sendMessage,
   };
-
+  
   return <SceneContext.Provider value={contextValue}>{children}</SceneContext.Provider>;
 };

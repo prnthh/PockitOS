@@ -8,33 +8,16 @@ import { Euler, Vector3 } from 'three'
 import MyCamera from './camera'
 import { TerrainLoader, TerrainSimple } from './floor'
 import Terrain from './terrain'
-
-var options = {
-  gridSize: [30, 16],
-  cellSize: 1.0,
-  cellThickness: 1.0,
-  cellColor: '#70db84',
-  sectionSize: 5.0,
-  sectionThickness: 1.5,
-  sectionColor: '#000000',
-  fadeDistance: 50,
-  fadeStrength: 1,
-  followCamera: false,
-  infiniteGrid: true,
-}
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 
 export function Game() {
-  const { players, socket } = useContext(SceneContext);
-  
-  const myPlayer = players.find((player) => player.id === socket.id);
-  const myPosition = new Vector3(myPlayer?.position.x || 0, myPlayer?.position.y || 0, myPlayer?.position.z || 0);
+  const { regions, socket } = useContext(SceneContext);
+  const [controlRef, setControlRef] = useState<OrbitControlsImpl | null>(null)
 
   function onTerrainClick(event: any) {
-    console.log(event.point);
     socket.emit('updatePosition', event.point);
-
   }
-  
+
   return (
     <Canvas
     className='h-full w-full'
@@ -44,16 +27,15 @@ export function Game() {
       far: 1000,
       near: 0.1,
     }}
-    >      
+    >
     <Sky sunPosition={[7, 5, 1]} />
     <fog attach="fog" args={["white", 50, 105]} />
     <Suspense fallback={null}>
-    <MyCamera myPosition={myPosition}/>
-    
-    
+    <MyCamera myref={setControlRef}/>
+
     <ambientLight />
     <directionalLight castShadow position={[10, 10, 10]} />
-    
+
     <SpriteAnimator
     scale={[4, 4, 4]}
     position={[0, -0.25, 1.2]}
@@ -75,16 +57,22 @@ export function Game() {
     alphaTest={0.01}
     textureImageURL={'./alien.png'}
     />
-    
-    {players.map((player) => {
-      return <PlayerComponent key={player.id} player={player} />
-    })}
-    <TerrainLoader onClick={onTerrainClick} position={myPosition}/>
-    {/* <Terrain playerPosition={myPosition} /> */}
+
+    {/* {players.map((player) => {
+      return <PlayerComponent key={player.id} player={player} control={controlRef} />
+    })} */}
+    {Object.keys(regions).map((regionId) => {
+      const region = regions[regionId];
+      return <>
+      {Object.values(region.entities).map((player) => {
+        return <PlayerComponent key={player.id} player={player} control={controlRef} />
+      })}
+      </>
+    } )}
+          <TerrainLoader onClick={onTerrainClick} />
+
     </Suspense>
-    {/* <Grid {...options} position={[0, -3.0, 0.0]} /> */}
     </Canvas>
     )
   }
-  
-  
+

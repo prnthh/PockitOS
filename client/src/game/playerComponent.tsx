@@ -1,36 +1,76 @@
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { Player } from '../context/client';
-import { useFrame, useLoader } from '@react-three/fiber';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { SceneContext } from '../context/client';
+import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { FBXLoader, SkeletonUtils } from 'three/examples/jsm/Addons.js';
 import { AnimationAction, AnimationMixer, Mesh, Vector3 } from 'three';
 import TWEEN from '@tweenjs/tween.js';
-import { SpriteAnimator } from '@react-three/drei';
+import { Html, SpriteAnimator } from '@react-three/drei';
+import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
+import { Player } from '../context/interface';
 
-const PlayerComponent = ({player}: {player: Player}) => {
-  const [position, setPosition] = useState(new Vector3(player.position.x, player.position.y, player.position.z)); 
+const PlayerComponent = ({player, control}: {player: Player, control: OrbitControlsImpl | null}) => {
+  const {socket} = useContext(SceneContext);
+  const [position, setPosition] = useState(new Vector3(player.position.x, player.position.y, player.position.z));
+  const { camera } = useThree();
+  const [ entityStatus, setEntityStatus ] = useState<{message: String | undefined, animation: String}>({
+    message: undefined,
+    animation: 'idle',
+  });
+  
+  // hide player.message in 5 seconds, unless if new one is set
+  useEffect(() => {
+    setEntityStatus({
+      message: player.message,
+      animation: entityStatus.animation,
+    });
+    
+    const timer = setTimeout(() => {
+      setEntityStatus({
+        message: undefined,
+        animation: entityStatus.animation,
+      });
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [player.message]);
+  
+  const isPlayer = player.id === socket.id;
   
   useFrame(() => {
     TWEEN.update();
   });
-
+  
   useEffect(() => {
-  const tween = new TWEEN.Tween(position)
-  .to(new Vector3(player.position.x, player.position.y, player.position.z), 1000)
-  .easing(TWEEN.Easing.Quadratic.Out)
-  .onUpdate(() => {
-    setPosition(new Vector3(position.x, position.y, position.z));
-  })
-  .start();
-
-  return () => {
-    tween.stop();
-  };
-
+    const distance = position.distanceTo(new Vector3(player.position.x, player.position.y, player.position.z));
+    const tween = new TWEEN.Tween(position)
+    .to(new Vector3(player.position.x, player.position.y, player.position.z), distance * 200)
+    .easing(TWEEN.Easing.Linear.None)
+    .onUpdate(() => {
+      setPosition(new Vector3(position.x, position.y, position.z));
+      if (camera && isPlayer && control) {
+        const cameraOffset = camera.position.clone().sub(control?.target as Vector3);
+        camera.position.set(position.x + cameraOffset.x,position.y + cameraOffset.y, position.z + cameraOffset.z);
+        if(control) control.target = new Vector3(position.x, position.y, position.z);
+      }
+    })
+    .start();
+    
+    return () => {
+      tween.stop();
+    };
+    
   }, [player.position.x, player.position.y, player.position.z]);
-
+  
   return <group dispose={null}
   position={position}>
+  <Html position={[0,1,0]}>
+  <div className='-translate-x-1/2 text-yellow-300'>
+  {entityStatus.message && entityStatus.message}
+  <div>
+  {JSON.stringify(entityStatus)}
   
+  </div>
+  </div>
+  </Html>
   <BoxCharacter />
   </group>
 }
@@ -39,7 +79,7 @@ export default PlayerComponent;
 
 function BoxCharacter() {
   const [frameName, setFrameName] = useState('idle');
-
+  
   
   const onClick = () => {
     console.log('clicked')
@@ -84,43 +124,43 @@ function FBXCharacter(){
   
   const animations = useLoader(FBXLoader, Object.values(ANIMATIONS)).map(f => f.animations[0]);
   const [mixer, setMixer] = useState<AnimationMixer | null>(null);
-
+  
   type Actions = { [key: string]: AnimationAction };
   const actions = useMemo(() => mixer ? Object.keys(ANIMATIONS).reduce<Actions>((acc, key, index) => {
     acc[key] = mixer.clipAction(animations[index], clone);
     return acc;
   }, {}) : {}, [mixer, clone, animations]);
-
+  
   useEffect(() => {
     if (!clone) return;
     
     clone.traverse((child) => { 
-        if (child instanceof Mesh) {
-            child.castShadow = true;
-            child.receiveShadow = true;
-            child.material.metalness = 0;
-            child.material.shininess = 0;
-            child.material.transparent = true;
-        }
+      if (child instanceof Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
+        child.material.metalness = 0;
+        child.material.shininess = 0;
+        child.material.transparent = true;
+      }
     });
     
     const newMixer = new AnimationMixer(clone);
     setMixer(newMixer);
-
+    
     return () => {
-        newMixer.stopAllAction();
-        newMixer.uncacheRoot(newMixer.getRoot());
+      newMixer.stopAllAction();
+      newMixer.uncacheRoot(newMixer.getRoot());
     };
-}, [clone]);
+  }, [clone]);
   useEffect(() => {
-        if (mixer) {
-            const action = (animationState && actions[animationState]) || actions.idle;
-            action?.reset().fadeIn(0.1)?.play();
-            
-            return () => {action.fadeOut(0.1);}
-        }
-    }, [mixer, actions, animationState]);
-
+    if (mixer) {
+      const action = (animationState && actions[animationState]) || actions.idle;
+      action?.reset().fadeIn(0.1)?.play();
+      
+      return () => {action.fadeOut(0.1);}
+    }
+  }, [mixer, actions, animationState]);
+  
   return <mesh
   ref={mesh}
   >

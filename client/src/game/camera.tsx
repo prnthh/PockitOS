@@ -7,22 +7,26 @@ import { OrbitControls } from "@react-three/drei";
 
 const defaultDistance = 10;
 
-function MyCamera({myPosition}: {myPosition: Vector3}) {
+function MyCamera({myref}: {myref: (orbit: OrbitControlsImpl) => void}) {
   const [cameraOffset, setCameraOffset] = useState(new Vector3(0, defaultDistance, defaultDistance));
 
 
   const camera = useThree(state => state.camera)
   const orbitControlsRef = useRef<OrbitControlsImpl>(null)
 
+  // useEffect(() => {
+  //   var cameraPosition = myPosition.clone();
+  //   cameraPosition.add(cameraOffset);
+  //   camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
+  // }, [myPosition]);
+
   useEffect(() => {
-    var cameraPosition = myPosition.clone();
-    cameraPosition.add(cameraOffset);
-    camera.position.set(cameraPosition.x, cameraPosition.y, cameraPosition.z);
-    // cameraPosition += cameraAngle;
-    
-  }, [myPosition]);
+    myref(orbitControlsRef.current as OrbitControlsImpl);
+  }, [orbitControlsRef]);
+
   return <OrbitControls
-  target={myPosition}
+  makeDefault
+  // target={myPosition}
   ref={orbitControlsRef}
   maxPolarAngle={Math.PI * 0.4}
   minPolarAngle={-Math.PI * 0.5}
@@ -31,11 +35,11 @@ function MyCamera({myPosition}: {myPosition: Vector3}) {
   minDistance={1.0}
   enableRotate={true}
   enableZoom={true}
-  onChange={() => {
-    var cameraOffset = camera.position.clone();
-    cameraOffset.sub(myPosition);
-    setCameraOffset(cameraOffset);
-  }}
+  // onChange={() => {
+  //   var cameraOffset = camera.position.clone();
+  //   cameraOffset.sub(myPosition);
+  //   setCameraOffset(cameraOffset);
+  // }}
   //enableDamping={true}
   dampingFactor={0.1}
   rotateSpeed={0.5}
