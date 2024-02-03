@@ -54,7 +54,14 @@ export const SceneProvider: React.FC<SceneProviderProps> = ({ children }) => {
             id: messageUpdate.player.id,
             position: messageUpdate.player.position,
           };
+          // remove from other regions
+          for (const regionId in regionsRef.current) {
+            if (regionId !== region.id) {
+              delete regionsRef.current[regionId].entities[messageUpdate.player.id];
+            }
+          }
         } else if (update.type === 'playerExit') {
+          console.log('Player exit', update);
           const messageUpdate = update as PlayerEnter
           delete region.entities[messageUpdate.player.id];
         } else if (update.type === 'newEntity') {

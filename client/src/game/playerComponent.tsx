@@ -16,6 +16,14 @@ const PlayerComponent = ({player, control}: {player: Player, control: OrbitContr
     message: undefined,
     animation: 'idle',
   });
+
+  const isPlayer = player?.id === socket?.id;
+
+  useEffect(() => {
+    if(isPlayer) {
+      control?.target.set(position.x, position.y, position.z);
+    }
+  } , [position, control, isPlayer]);
   
   // hide player.message in 5 seconds, unless if new one is set
   useEffect(() => {
@@ -32,9 +40,7 @@ const PlayerComponent = ({player, control}: {player: Player, control: OrbitContr
     }, 5000);
     return () => clearTimeout(timer);
   }, [player.message]);
-  
-  const isPlayer = player?.id === socket?.id;
-  
+    
   useFrame(() => {
     TWEEN.update();
   });
@@ -49,7 +55,7 @@ const PlayerComponent = ({player, control}: {player: Player, control: OrbitContr
       if (camera && isPlayer && control) {
         const cameraOffset = camera.position.clone().sub(control?.target as Vector3);
         camera.position.set(position.x + cameraOffset.x,position.y + cameraOffset.y, position.z + cameraOffset.z);
-        if(control) control.target = new Vector3(position.x, position.y, position.z);
+        control.target = new Vector3(position.x, position.y, position.z);
       }
     })
     .start();
@@ -65,6 +71,7 @@ const PlayerComponent = ({player, control}: {player: Player, control: OrbitContr
   <Html position={[0,1,0]}>
   <div className='-translate-x-1/2 text-yellow-300'>
   {entityStatus.message && entityStatus.message}
+  {player.id}
   <div>
   {JSON.stringify(entityStatus)}
   

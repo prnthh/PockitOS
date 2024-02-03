@@ -105,6 +105,7 @@ setInterval(() => {
             playersToNotify.forEach(playerId => {
                 const player = entities[playerId];
                 if (isPlayer(player)) {
+                    console.log(`Sending updates to player ${playerId} in region ${regionKey}`);
                     player.socket.emit('regionUpdate', {
                         regionId: regionKey,
                         updates: region.updates
