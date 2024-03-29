@@ -1,6 +1,7 @@
 import { EntityEnter, PlayerEnter, Position, Region } from "../client/src/context/interface";
-import { GameEntity,PlayerEntity, ServerEntity } from "../interface";
+import { GameEntity, ServerEntity } from "../interface";
 import { Player } from "../client/src/context/interface";
+import { PlayerEntity } from "../entities/playerEntity";
 
 const REGION_SIZE = 100;
 
@@ -49,13 +50,7 @@ export function removePlayerFromRegion(player: GameEntity, regions: Record<strin
 export function movePlayerRegion(player: GameEntity, regions: Record<string, Region>) {
     const oldRegion = player.region;
     const newRegion = getRegionKey(player.position);
-
-    if(oldRegion && oldRegion !== newRegion) 
-    {
-        regions[oldRegion]?.updates.push({ type: 'playerExit',
-        player: {id: player.id, position: player.position} });
-        delete regions[oldRegion].entities[player.id];
-    }
+    
     if (newRegion) {
         player.region = newRegion;
         if (!regions[newRegion]) {
@@ -66,10 +61,24 @@ export function movePlayerRegion(player: GameEntity, regions: Record<string, Reg
             };
         }
         
-        regions[newRegion]?.updates.push({ type: 'playerEnter',
-        player: {id: player.id, position: player.position} });
+        if(oldRegion !== newRegion) 
+        {
+            if(oldRegion)
+            {
+                regions[oldRegion]?.updates.push({ 
+                    type: 'playerExit',
+                    player: {id: player.id, position: player.position} 
+                });
+                delete regions[oldRegion].entities[player.id];
+            }
+            regions[newRegion]?.updates.push({ 
+                type: 'playerEnter',
+                player: {id: player.id, position: player.position} 
+            });
+        }
+        
         regions[newRegion].entities[player.id] = player as PlayerEntity;
-
+        
         if(oldRegion !== newRegion && isPlayer(player))
         {
             player.socket.emit('regionState', {
@@ -77,7 +86,7 @@ export function movePlayerRegion(player: GameEntity, regions: Record<string, Reg
                 id: player.region,
             } as Region);
         }
-
+        
     }
 }
 

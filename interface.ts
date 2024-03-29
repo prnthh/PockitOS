@@ -1,7 +1,8 @@
 import { Socket } from 'socket.io';
 import { Position, Region, id } from './client/src/context/interface';
+import { PlayerEntity } from './entities/playerEntity';
 
-abstract class AbstractEntity {
+export abstract class AbstractEntity {
     id: id;
     name: string | undefined;
     position = { x: 0, y: 0, z: 0};
@@ -23,15 +24,6 @@ export class ServerEntity extends AbstractEntity {
     behavior(region: Region): void { }
 }
 
-export class PlayerEntity extends AbstractEntity {
-    socket: Socket;
-    
-    constructor(id: string, socket: any) {
-        super(id);
-        this.socket = socket;
-    }
-    
-    behavior(): void {}
-}
+
 
 export type GameEntity = ServerEntity | PlayerEntity;

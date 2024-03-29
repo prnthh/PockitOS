@@ -2,9 +2,10 @@ import express, { Express, Request, Response } from "express";
 import { createServer } from 'http';
 import { Server, Socket } from 'socket.io';
 import { getAdjacentRegions, isPlayer, isServerEntity, movePlayerRegion, removePlayerFromRegion } from "./modules/region";
-import { GameEntity, PlayerEntity, ServerEntity } from "./interface";
+import { GameEntity, ServerEntity } from "./interface";
 import TalkativeEntity from "./entities/talkativeEntity";
 import { Position, PositionUpdate, Region, SendMessage } from "./client/src/context/interface";
+import { PlayerEntity } from "./entities/playerEntity";
 
 const app = express();
 const httpServer = createServer(app);

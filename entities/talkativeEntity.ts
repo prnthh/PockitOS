@@ -39,7 +39,7 @@ class TalkativeEntity extends ServerEntity {
     }
 
     sendMessage(message: string): void {
-        console.log(`${this.name}: ${message}`);
+        console.log(`${this.id}: ${message}`);
     }
 
     private circularWalkingBehavior(entity: ServerEntity, distance: number) {

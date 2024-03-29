@@ -3,27 +3,46 @@ import logo from './logo.svg';
 import { SceneContext } from '../context/client';
 
 function Menu() {
-    const { regions, socket } = useContext(SceneContext);
     
     return <>
-    <div className="absolute">
-    <div className="border border-black">players:
+    <Online/>
+    <Chat />
+    </>
+}
+
+function Online() {
+    const [collapsed, setCollapsed] = React.useState(false);    
+    const { regions, socket } = useContext(SceneContext);
+    return <div className="absolute top-2 right-2">
+    <div className="border bg-white text-left p-1 rounded-xl flex flex-col items-center">
     
+    <button 
+    className='flex items-center gap-1'
+    onClick={(e: any)=>{
+        setCollapsed(!collapsed);
+        e.stopPropagation();
+    }}>
+    players online 
+    <div className='w-5 h-5 flex items-center justify-center bg-black/50 rounded-full text-white'>
+    {regions && Object.values(regions).reduce((acc, region) => acc + region.length, 0)}   
+    </div>
+    </button>
+    
+    {collapsed && <div className={'flex flex-col gap-1 w-full'}>
     {Object.keys(regions).map((region, id) => {
-        return <div key={id}>
-        {region}
+        return <div key={id} className='border bg-gray-200 rounded-lg overflow-hidden'>
+        <div className='text-sm text-center w-full'>Region {region}</div>
         {regions[region].map((player, id) => {
-            return <div key={id}>
-            {player}
+            return <div className={'px-1 hover:bg-gray-300'} key={id}>
+            {player == socket.id? 'You': player }
             </div>})
         }
         </div>
     })}
+    </div>}
     </div>
     
     </div>
-    <Chat />
-    </>
 }
 
 function Chat() {
@@ -62,13 +81,13 @@ function Chat() {
         if(message.length > 0) {
             socket.emit('sendMessage', { message: message });
             setMessage('');
-        }
+        }   
     }
     
-    return <div className="absolute bottom-0">
-    <div className='bg-gray-200/30'>
+    return <div className="absolute bottom-2 right-2">
+    <div className='bg-gray-200/30 p-2 rounded-lg'>
     <div className='max-h-36 overflow-y-auto text-left p-1'>
-    {data.map((element) => <div key={element.timestamp}>
+    {data.map((element, id) => <div key={id}>
     {element.playerId}: {element.message}
     </div>
     )}

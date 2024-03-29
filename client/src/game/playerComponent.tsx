@@ -2,11 +2,12 @@ import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { SceneContext } from '../context/client';
 import { useFrame, useLoader, useThree } from '@react-three/fiber';
 import { FBXLoader, SkeletonUtils } from 'three/examples/jsm/Addons.js';
-import { AnimationAction, AnimationMixer, Mesh, Vector3 } from 'three';
+import { AnimationAction, AnimationMixer, Mesh, Object3D, Object3DEventMap, Vector3 } from 'three';
 import TWEEN from '@tweenjs/tween.js';
-import { Html, SpriteAnimator } from '@react-three/drei';
+import { Html } from '@react-three/drei';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib'
 import { Player } from '../context/interface';
+import SpriteEntity from './EntityVariants/SpriteEntity';
 
 const PlayerComponent = ({player, control}: {player: Player, control: OrbitControlsImpl | null}) => {
   const {socket} = useContext(SceneContext);
@@ -16,6 +17,7 @@ const PlayerComponent = ({player, control}: {player: Player, control: OrbitContr
     message: undefined,
     animation: 'idle',
   });
+  // const animations = useLoader(FBXLoader, Object.values(ANIMATIONS)).map(f => f.animations[0]);
 
   const isPlayer = player?.id === socket?.id;
 
@@ -78,42 +80,13 @@ const PlayerComponent = ({player, control}: {player: Player, control: OrbitContr
   </div>
   </div>
   </Html>
-  <BoxCharacter />
+  <SpriteEntity />
   </group>
 }
 
 export default PlayerComponent;
 
-function BoxCharacter() {
-  const [frameName, setFrameName] = useState('idle');
-  
-  
-  const onClick = () => {
-    console.log('clicked')
-    setFrameName('celebration')
-  }
-  
-  const onEnd = ({ currentFrameName, currentFrame }: {currentFrameName: string, currentFrame: number}) => {
-    if (currentFrameName === 'celebration') {
-      setFrameName('idle')
-    }
-  }
-  return   <group onClick={onClick}>
-  <SpriteAnimator
-  scale={[4, 4, 4]}
-  position={[0.0, -1.5, 0]}
-  onLoopEnd={onEnd}
-  frameName={frameName}
-  fps={24}
-  animationNames={['idle', 'celebration']}
-  autoPlay={true}
-  loop={true}
-  alphaTest={0.01}
-  textureImageURL={'./boy_hash.png'}
-  textureDataURL={'./boy_hash.json'}
-  />
-  </group>
-}
+
 
 export const ANIMATIONS = {
   idle: '/resources/animation/Happy.fbx',
@@ -124,49 +97,8 @@ function FBXCharacter(){
   
   const fileUrl = '/models/character/character.fbx';
   const fbx = useLoader(FBXLoader, fileUrl);
-  const clone = useMemo(() => SkeletonUtils.clone(fbx), [fbx]);
-  const [animationState, setAnimationState] = useState('idle');
-  
+  const clone = useMemo(() => SkeletonUtils.clone(fbx), [fbx]);  
   const mesh = useRef<Mesh>(null);
-  
-  const animations = useLoader(FBXLoader, Object.values(ANIMATIONS)).map(f => f.animations[0]);
-  const [mixer, setMixer] = useState<AnimationMixer | null>(null);
-  
-  type Actions = { [key: string]: AnimationAction };
-  const actions = useMemo(() => mixer ? Object.keys(ANIMATIONS).reduce<Actions>((acc, key, index) => {
-    acc[key] = mixer.clipAction(animations[index], clone);
-    return acc;
-  }, {}) : {}, [mixer, clone, animations]);
-  
-  useEffect(() => {
-    if (!clone) return;
-    
-    clone.traverse((child) => { 
-      if (child instanceof Mesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-        child.material.metalness = 0;
-        child.material.shininess = 0;
-        child.material.transparent = true;
-      }
-    });
-    
-    const newMixer = new AnimationMixer(clone);
-    setMixer(newMixer);
-    
-    return () => {
-      newMixer.stopAllAction();
-      newMixer.uncacheRoot(newMixer.getRoot());
-    };
-  }, [clone]);
-  useEffect(() => {
-    if (mixer) {
-      const action = (animationState && actions[animationState]) || actions.idle;
-      action?.reset().fadeIn(0.1)?.play();
-      
-      return () => {action.fadeOut(0.1);}
-    }
-  }, [mixer, actions, animationState]);
   
   return <mesh
   ref={mesh}
@@ -174,3 +106,46 @@ function FBXCharacter(){
   <primitive object={clone} scale={1} />
   </mesh>
 }
+
+
+function useModelAttachment(
+  clone:Object3D<Object3DEventMap>,
+  attachpoint: string,
+  model?: string,
+  offset?: Vector3,
+  scale?: Vector3,
+  rotation?: Vector3){
+      const [loadedModel, setLoadedModel] = useState<Object3D>();
+
+      useEffect(() => {
+          const bone = clone.getObjectByName(attachpoint);
+          if (!bone) return;
+          const existingModel = bone.getObjectByName(attachpoint + "hat");
+          if (existingModel) bone.remove(existingModel);
+
+          if(model && (model.includes("undefined") || model.includes("None"))) return;
+
+          const hatFileUrl = `/resources/3d/${model}.fbx`;
+          const loader = new FBXLoader();
+          loader.load(hatFileUrl, (loadedHat) => {
+              const clonedHat = SkeletonUtils.clone(loadedHat);
+              setLoadedModel(clonedHat);
+          });
+      }, [model, clone]);
+
+      useEffect(() => {
+          if (!loadedModel || !clone) return;
+
+          const bone = clone.getObjectByName(attachpoint);
+          if (bone) {
+              loadedModel.name = attachpoint + "hat";
+              loadedModel.position.set(offset?.x || 0, offset?.y || 0, offset?.z || 0);
+              loadedModel.scale.set(scale?.x || 1, scale?.y || 1, scale?.z || 1);
+              loadedModel.rotation.set(rotation?.x || 0, rotation?.y || 0, rotation?.z || 0);
+              bone.add(loadedModel);
+          }
+      }, [loadedModel]);
+
+      return { loadedModel, setLoadedModel };
+
+  }
