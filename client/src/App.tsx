@@ -33,13 +33,13 @@ function Game() {
   useEffect(() => {
     dispatch(addNPC({
       id: "npc1",
-      position: [Math.random() * 5, 0, Math.random() * 5]
+      position: [0, 1, 10]
     }))
   }, [])
 
   return <Canvas shadows style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}>
     <Physics debug>
-      <RigidBody type="fixed" position={[0, -1, 0]}>
+      <RigidBody type="fixed" position={[0, 0, 0]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
           <planeGeometry args={[100, 100]} />
           <meshPhysicalMaterial
@@ -47,6 +47,7 @@ function Game() {
             roughness={1}
             metalness={0}
           />
+          <gridHelper args={[100, 100, 'white', 'lightblue']} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} />
         </mesh>
       </RigidBody>
 
