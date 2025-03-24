@@ -96,8 +96,6 @@ export default function useAnimationState(
 
             action?.reset().setLoop(LoopRepeat, loops).fadeIn(0.5).play()
 
-            console.log('playing', thisAnimation)
-
             return () => {
                 action.fadeOut(0.5)
             }
