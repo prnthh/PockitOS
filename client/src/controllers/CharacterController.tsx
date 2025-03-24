@@ -176,7 +176,7 @@ export const CharacterController = () => {
     });
 
     return (
-        <RigidBody colliders={false} lockRotations ref={rb}>
+        <RigidBody colliders={false} lockRotations ref={rb} userData={{ type: "player" }}>
             <group ref={container}>
                 <group ref={cameraTarget} position-z={1.5} />
                 <group ref={cameraPosition} position-y={2} position-z={-3} />

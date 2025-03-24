@@ -1,4 +1,4 @@
-import { CapsuleCollider, RapierRigidBody, RigidBody } from "@react-three/rapier";
+import { CapsuleCollider, CuboidCollider, RapierRigidBody, RigidBody } from "@react-three/rapier";
 import React, { memo, useRef, useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { selectPersonById } from "../store/personSelectors";
@@ -14,6 +14,8 @@ const Ped = memo(({ id }: { id: string }) => {
     const rigidBodyRef = useRef<RapierRigidBody>(null);
     const [animation, setAnimation] = useState<string>("idle");
     const dispatch = useDispatch<AppDispatch>()
+
+    const [fallenOver, setFallenOver] = useState(false);
 
     const { setTarget } = usePhysicsWalk(rigidBodyRef, setAnimation, () => {
         setTimeout(() => {
@@ -35,13 +37,26 @@ const Ped = memo(({ id }: { id: string }) => {
                 position={person.position}
                 linearDamping={0.5}
                 angularDamping={0.5}
-                enabledRotations={[false, true, false]}
+                enabledRotations={fallenOver ? [true, true, true] : [false, true, false]}
+                onCollisionEnter={(e) => {
+                    console.log('onCollisionEnter', e)
+                    // @ts-ignore
+                    if (e.other.rigidBody?.userData?.type === 'player') {
+                        setTarget(undefined)
+                        // make the player fall over
+                        setFallenOver(true)
+                    }
+
+                }}
             >
                 <CapsuleCollider args={[0.3, 0.15]} />
+                <CuboidCollider args={[0.3, 0.3, 0.1]} />
                 <AnimatedModel model={`/${id}.glb`} animation={animation} onClick={() => {
                     if (person.cameraTarget) dispatch(makeCameraTarget(undefined))
-                    else
+                    else {
                         dispatch(makeCameraTarget(id))
+                        setTarget(undefined)
+                    }
                 }} />
             </RigidBody>
         </>

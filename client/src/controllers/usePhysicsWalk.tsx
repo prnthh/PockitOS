@@ -16,8 +16,11 @@ const usePhysicsWalk = (rigidBodyRef: RefObject<RapierRigidBody | null>, setAnim
     const targetReached = useRef(false);
 
     useEffect(() => {
-        setTarget(target);
         targetReached.current = false;
+        if (!target) {
+            setAnimation("idle");
+            return;
+        }
         return () => {
             if (waitTimeoutRef.current) clearTimeout(waitTimeoutRef.current);
         };
@@ -34,10 +37,10 @@ const usePhysicsWalk = (rigidBodyRef: RefObject<RapierRigidBody | null>, setAnim
         const distance = directionToTarget.length();
 
         if (distance <= IDLE_THRESHOLD) {
-            setAnimation("idle");
             rigidBody.setLinvel({ x: 0, y: rigidBody.linvel().y, z: 0 }, true);
             if (onDestinationReached) onDestinationReached();
             targetReached.current = true;
+            setTarget(undefined);
             return;
         }
 
