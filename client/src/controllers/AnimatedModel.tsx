@@ -8,7 +8,9 @@ import { SkeletonUtils } from "three/examples/jsm/Addons";
 // Model cache to store loaded models
 const modelCache = new Map();
 
-const AnimatedModel = ({ model, animation, ...props }: { model: string; animation: string }) => {
+const AnimatedModel = ({ model, animation, onClick, ...props }: {
+    model: string; animation: string, onClick?: () => void;
+}) => {
     const groupRef = useRef<THREE.Group>(null);
     const { scene, animations } = useGLTF(model);
     const [clonedScene, setClonedScene] = useState<THREE.Object3D | undefined>(undefined);
@@ -42,7 +44,9 @@ const AnimatedModel = ({ model, animation, ...props }: { model: string; animatio
     });
 
     return (
-        <group ref={groupRef} {...props} position={[0, -0.4, 0]}>
+        <group ref={groupRef} {...props} position={[0, -0.4, 0]} onClick={(e) => {
+            if (onClick) onClick();
+        }}>
             {clonedScene && <primitive object={clonedScene} />}
         </group>
     );

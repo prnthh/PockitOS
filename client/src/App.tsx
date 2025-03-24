@@ -13,6 +13,8 @@ import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import Ped from './models/ped';
 import { CharacterController } from './controllers/CharacterController';
 import { selectPersonById } from './store/personSelectors';
+import Ground from './models/ground';
+import MetaCamera from './gizmos/MetaCamera';
 
 function App() {
 
@@ -32,30 +34,27 @@ function Game() {
 
   useEffect(() => {
     dispatch(addNPC({
-      id: "npc1",
+      id: "rigga",
+      position: [5, 1, 10]
+    }))
+    dispatch(addNPC({
+      id: "rigga2",
+      position: [-5, 1, 10]
+    }))
+    dispatch(addNPC({
+      id: "rigga3",
       position: [0, 1, 10]
     }))
   }, [])
 
-  return <Canvas shadows style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}>
+  return <Canvas className='select-none' shadows style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}>
     <Physics debug>
-      <RigidBody type="fixed" position={[0, 0, 0]}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-          <planeGeometry args={[100, 100]} />
-          <meshPhysicalMaterial
-            color="#4477ff"
-            roughness={1}
-            metalness={0}
-          />
-          <gridHelper args={[100, 100, 'white', 'lightblue']} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} />
-        </mesh>
-      </RigidBody>
-
       {Object.keys(people).map((personId) => {
         return <Ped key={personId} id={personId} />
       })}
 
       <CharacterController />
+      <Ground />
     </Physics>
 
     <ambientLight intensity={2} />
@@ -73,7 +72,7 @@ function Game() {
       shadow-bias={-0.0001}
     />
 
-    <PerspectiveCamera makeDefault position={[0, 10, 10]} />
+    <MetaCamera />
   </Canvas>
 }
 

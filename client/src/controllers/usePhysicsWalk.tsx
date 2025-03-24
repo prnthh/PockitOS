@@ -9,7 +9,7 @@ const IDLE_THRESHOLD = 0.5;
 const RUN_DISTANCE = 5.0;
 const ROTATION_SPEED = 2.5;
 
-const usePhysicsWalk = (rigidBodyRef: RefObject<RapierRigidBody>, setAnimation: any, onDestinationReached?: () => void) => {
+const usePhysicsWalk = (rigidBodyRef: RefObject<RapierRigidBody | null>, setAnimation: any, onDestinationReached?: () => void) => {
     const waitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const [target, setTarget] = useState<number[] | undefined>([0, 0, 0]);
@@ -63,7 +63,6 @@ const usePhysicsWalk = (rigidBodyRef: RefObject<RapierRigidBody>, setAnimation: 
             z: forwardVelocity.z
         }, true);
 
-        console.log("distance", distance, "speed", speed, "forward", forwardVelocity);
         setAnimation(speed > WALK_SPEED * 1.2 ? "run" : "walk");
     });
 

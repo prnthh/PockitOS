@@ -5,6 +5,9 @@ import { useEffect, useRef, useState } from "react";
 import { MathUtils, Vector3 } from "three";
 import { Group } from 'three';
 import AnimatedModel from "./AnimatedModel";
+import { useSelector } from "react-redux";
+import { RootState } from "../store/store";
+import { getCameraTarget } from "../store/personSelectors";
 
 const normalizeAngle = (angle: number): number => {
     while (angle > Math.PI) angle -= 2 * Math.PI;
@@ -46,6 +49,7 @@ export const CharacterController = () => {
     const cameraWorldPosition = useRef(new Vector3());
     const cameraLookAtWorldPosition = useRef(new Vector3());
     const cameraLookAt = useRef(new Vector3());
+    const targetId = useSelector((state: RootState) => getCameraTarget(state));
 
     const [animation, setAnimation] = useState<AnimationState>("idle");
 
@@ -157,7 +161,7 @@ export const CharacterController = () => {
             0.1
         );
 
-        if (true) {
+        if (!targetId) {
             if (cameraPosition.current) {
                 cameraPosition.current.getWorldPosition(cameraWorldPosition.current);
                 camera.position.lerp(cameraWorldPosition.current, 0.1);
@@ -177,7 +181,7 @@ export const CharacterController = () => {
                 <group ref={cameraTarget} position-z={1.5} />
                 <group ref={cameraPosition} position-y={2} position-z={-3} />
                 <group ref={character}>
-                    <AnimatedModel model="/rigga2.glb" animation={animation} />
+                    <AnimatedModel model="/rigga4.glb" animation={animation} />
                 </group>
             </group>
             <CapsuleCollider args={[0.3, 0.15]} />
