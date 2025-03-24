@@ -8,6 +8,8 @@ import * as THREE from "three";
 import { Box } from "@react-three/drei";
 import usePhysicsWalk from "../controllers/usePhysicsWalk";
 import { makeCameraTarget, setRigidBody } from "../store/PersonSlice";
+import { useFrame } from "@react-three/fiber";
+import useUnstableWalk from "../controllers/useUnstableWalk";
 
 const Ped = memo(({ id }: { id: string }) => {
     const person = useSelector((state: RootState) => selectPersonById(state, id));
@@ -15,7 +17,7 @@ const Ped = memo(({ id }: { id: string }) => {
     const [animation, setAnimation] = useState<string>("idle");
     const dispatch = useDispatch<AppDispatch>()
 
-    const [fallenOver, setFallenOver] = useState(false);
+    const { fallenOver, setFallenOver, isRecovering } = useUnstableWalk(rigidBodyRef, setAnimation);
 
     const { setTarget } = usePhysicsWalk(rigidBodyRef, setAnimation, () => {
         setTimeout(() => {
@@ -46,11 +48,10 @@ const Ped = memo(({ id }: { id: string }) => {
                         // make the player fall over
                         setFallenOver(true)
                     }
-
                 }}
             >
                 <CapsuleCollider args={[0.3, 0.15]} />
-                <CuboidCollider args={[0.3, 0.3, 0.1]} />
+                <CuboidCollider args={[0.2, 0.3, 0.1]} />
                 <AnimatedModel model={`/${id}.glb`} animation={animation} onClick={() => {
                     if (person.cameraTarget) dispatch(makeCameraTarget(undefined))
                     else {
