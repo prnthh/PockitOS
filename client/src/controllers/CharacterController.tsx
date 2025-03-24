@@ -181,7 +181,7 @@ export const CharacterController = () => {
                 <group ref={cameraTarget} position-z={1.5} />
                 <group ref={cameraPosition} position-y={2} position-z={-3} />
                 <group ref={character}>
-                    <AnimatedModel model="/rigga4.glb" animation={animation} />
+                    <AnimatedModel model="/rigga4.glb" animation={animation} height={0.4} />
                 </group>
             </group>
             <CapsuleCollider args={[0.3, 0.15]} />

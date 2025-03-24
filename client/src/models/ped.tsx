@@ -52,13 +52,15 @@ const Ped = memo(({ id }: { id: string }) => {
             >
                 <CapsuleCollider args={[0.3, 0.15]} />
                 <CuboidCollider args={[0.2, 0.3, 0.1]} />
-                <AnimatedModel model={`/${id}.glb`} animation={animation} onClick={() => {
-                    if (person.cameraTarget) dispatch(makeCameraTarget(undefined))
-                    else {
-                        dispatch(makeCameraTarget(id))
-                        setTarget(undefined)
-                    }
-                }} />
+                <AnimatedModel model={`/${id}.glb`} animation={animation}
+                    height={0.45}
+                    onClick={() => {
+                        if (person.cameraTarget) dispatch(makeCameraTarget(undefined))
+                        else {
+                            dispatch(makeCameraTarget(id))
+                            setTarget(undefined)
+                        }
+                    }} />
             </RigidBody>
         </>
     );

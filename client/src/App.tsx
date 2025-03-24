@@ -22,7 +22,7 @@ function App() {
     <Provider store={store}>
       <Controls>
         <Game />
-        <Dialog />
+        {/* <Dialog /> */}
       </Controls>
     </Provider>
   );
@@ -47,8 +47,11 @@ function Game() {
     }))
   }, [])
 
-  return <Canvas className='select-none' shadows style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}>
-    <Physics debug>
+  return <Canvas className='select-none touch-none' shadows style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}>
+    <color attach="background" args={['#222233']} />
+    <fogExp2 attach="fog" args={['#222233', 0.04]} />
+
+    <Physics>
       {Object.keys(people).map((personId) => {
         return <Ped key={personId} id={personId} />
       })}
@@ -57,11 +60,11 @@ function Game() {
       <Ground />
     </Physics>
 
-    <ambientLight intensity={2} />
+    <ambientLight intensity={0.3} />
     <directionalLight
       position={[5, 5, 5]}
       castShadow
-      intensity={1}
+      intensity={1.5}
       shadow-mapSize={[2048, 2048]}
       shadow-camera-left={-20}
       shadow-camera-right={20}
