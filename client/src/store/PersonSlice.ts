@@ -7,7 +7,6 @@ export interface PersonsState {
     [id:string]: {
         id: string,
         position: [number, number, number]
-        targetPosition?: [number, number, number]
         rbRef?: { current: RapierRigidBody | null }
         inventory: string[],
         currentGoal?: string
@@ -43,15 +42,30 @@ export const personSlice = createSlice({
         },
         makeCameraTarget: (state, action: PayloadAction<string | undefined>) => {
             Object.keys(state).forEach(key => {
-            state[key].cameraTarget = undefined;
+                state[key].cameraTarget = undefined;
             });
             
             if (action.payload !== undefined && state[action.payload]) {
-            state[action.payload].cameraTarget = true;
+                state[action.payload].cameraTarget = true;
             }
         },
+        setCurrentGoal: (state, action: PayloadAction<{ id: string, goal: string }>) => {
+            if (state[action.payload.id]) {
+                state[action.payload.id].currentGoal = action.payload.goal;
+            }
         },
-        extraReducers: (builder) => {
+        setCurrentAction: (state, action: PayloadAction<{ id: string, action: string }>) => {
+            if (state[action.payload.id]) {
+                state[action.payload.id].currentAction = action.payload.action;
+            }
+        },
+        addToInventory : (state, action: PayloadAction<{ id: string, item: string }>) => {
+            if (state[action.payload.id]) {
+                state[action.payload.id].inventory.push(action.payload.item);
+            }
+        },
+    },
+    extraReducers: (builder) => {
         builder.addCase(getBunCount.pending, (state) => {
             //   state.status = 'loading'
         })
@@ -77,6 +91,9 @@ export const {
     addNPC,
     setRigidBody,
     makeCameraTarget,
+    setCurrentGoal,
+    setCurrentAction,
+    addToInventory,
 } = personSlice.actions
 
 export default personSlice.reducer

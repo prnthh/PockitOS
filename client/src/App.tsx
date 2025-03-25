@@ -8,13 +8,13 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState, store } from './store/store';
 import { Provider } from 'react-redux'
 import { addNPC } from './store/PersonSlice';
-import { Physics, RigidBody } from '@react-three/rapier';
-import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
-import Ped from './models/ped';
+import { Physics } from '@react-three/rapier';
+import Ped from './rigs/ped';
 import { CharacterController } from './controllers/CharacterController';
-import { selectPersonById } from './store/personSelectors';
-import Ground from './models/ground';
+import Ground from './rigs/ground';
 import MetaCamera from './gizmos/MetaCamera';
+import Thing from './rigs/thing';
+import Building from './rigs/building';
 
 function App() {
 
@@ -22,7 +22,7 @@ function App() {
     <Provider store={store}>
       <Controls>
         <Game />
-        {/* <Dialog /> */}
+        <Dialog />
       </Controls>
     </Provider>
   );
@@ -51,12 +51,14 @@ function Game() {
     <color attach="background" args={['#222233']} />
     <fogExp2 attach="fog" args={['#222233', 0.04]} />
 
-    <Physics>
+    <Physics debug>
       {Object.keys(people).map((personId) => {
         return <Ped key={personId} id={personId} />
       })}
 
       <CharacterController />
+      <Thing model="burger.glb" />
+      <Building model="lamppost2.glb" />
       <Ground />
     </Physics>
 
@@ -64,7 +66,7 @@ function Game() {
     <directionalLight
       position={[5, 5, 5]}
       castShadow
-      intensity={1.5}
+      intensity={0.2}
       shadow-mapSize={[2048, 2048]}
       shadow-camera-left={-20}
       shadow-camera-right={20}

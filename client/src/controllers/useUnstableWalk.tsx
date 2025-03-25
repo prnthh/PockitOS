@@ -2,20 +2,23 @@ import { RapierRigidBody } from "@react-three/rapier";
 import { useRef, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { setCurrentAction } from "../store/PersonSlice";
+import { useDispatch } from "react-redux";
 
 export interface UseUnstableWalkReturn {
     fallenOver: boolean;
     setFallenOver: (value: boolean) => void;
-    isRecovering: boolean;
 }
 
 export default function useUnstableWalk(
+    id: string,
     rigidBodyRef: React.RefObject<RapierRigidBody | null>,
     setAnimation: (animation: string) => void
 ): UseUnstableWalkReturn {
     const [fallenOver, setFallenOver] = useState(false);
     const [isRecovering, setIsRecovering] = useState(false);
     const recoveryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const dispatch = useDispatch();
 
     // Handle recovery from fallen state
     useEffect(() => {
@@ -23,6 +26,7 @@ export default function useUnstableWalk(
             // Wait a moment before starting recovery
             recoveryTimeoutRef.current = setTimeout(() => {
                 setIsRecovering(true);
+                dispatch(setCurrentAction({ id, action: "recover" }));
                 setAnimation("idle"); // Could use a "getup" animation if available
             }, 2000);
         }
@@ -82,6 +86,5 @@ export default function useUnstableWalk(
     return {
         fallenOver,
         setFallenOver,
-        isRecovering,
     };
 }

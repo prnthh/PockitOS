@@ -2,14 +2,14 @@ import { useGLTF, useAnimations, Box } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
-import useAnimationState from "./useAnimationState";
+import useAnimationState from "../controllers/useAnimationState";
 import { SkeletonUtils } from "three/examples/jsm/Addons";
 
 // Model cache to store loaded models
 const modelCache = new Map();
 
-const AnimatedModel = ({ model, animation, onClick, height, ...props }: {
-    model: string; animation: string, height: number, onClick?: () => void;
+const AnimatedModel = ({ model, animation, onClick, height, animationOverrides, ...props }: {
+    model: string; animation: string, height: number, animationOverrides?: { [key: string]: string }, onClick?: () => void;
 }) => {
     const groupRef = useRef<THREE.Group>(null);
     const { scene, animations } = useGLTF(model);
@@ -30,7 +30,7 @@ const AnimatedModel = ({ model, animation, onClick, height, ...props }: {
         }
     }, [scene]);
 
-    const { mixer, setThisAnimation } = useAnimationState(clonedScene);
+    const { mixer, setThisAnimation } = useAnimationState(clonedScene, animationOverrides);
 
     useEffect(() => {
         if (animation && mixer) {
