@@ -14,6 +14,7 @@ const helpers =/* glsl */ `
 
 const params =/* glsl */ `
   uniform vec3 uPlanePosition;
+  uniform mat3 uPlaneRotation; // Added plane rotation uniform
   uniform float room_size;
   uniform float room_depth;
   uniform sampler2D cubemap_albedo;
@@ -141,49 +142,50 @@ const interiorCubeMap = {
       
       color = sample_cubemap(cubemap_albedo, cm_uv, cm_face);
 
-      // /* Parallax */
-      // vec2 parallaxUv = vUv - 0.5;
+      /* Parallax */
+      vec2 parallaxUv = vUv - 0.5;
 
-      // // Compute view direction in world space
-      // vec3 viewDir = normalize(cameraPosition - uPlanePosition);
+      // Compute view direction in world space
+      vec3 viewDir = normalize(cameraPosition - uPlanePosition);
 
-      // // Transform view direction to tangent space
-      // vec3 viewDirTS = vec3(
-      //   dot(viewDir, vTangent),
-      //   dot(viewDir, vBitangent),
-      //   dot(viewDir, vNormal)
-      // );
+      // Transform view direction to the plane's local space using uPlaneRotation
+      vec3 viewDirTS = uPlaneRotation * viewDir;
 
-      // // Normal in tangent space (facing forward)
-      // vec3 normalTS = vec3(0.0, 0.0, 1.0);
+      // Normal in tangent space (facing forward in local space)
+      vec3 normalTS = vec3(0.0, 0.0, 1.0);
 
-      // // Compute facing coefficient
-      // float facingCoefficient = dot(viewDirTS, normalTS);
-      // facingCoefficient = facingCoefficient; // Stabilize coefficient
+      // Compute facing coefficient (clamp to avoid extremes)
+      float facingCoefficient = max(dot(viewDirTS, normalTS), 1.0); // Avoid division by near-zero
+      
+      // Compute distance from camera to plane (in world space)
+      float distanceToPlane = length(cameraPosition - uPlanePosition);
+      
+      // Scale parallax effect inversely with distance (closer = stronger effect)
+      float distanceScale = 0.1 / distanceToPlane; // Adjust this factor as needed
+      
+      // Compute perspective offset with distance scaling
+      vec3 perspective = viewDirTS / facingCoefficient;
+      vec2 parallaxOffset = perspective.xy * facingCoefficient * distanceScale / 100.0; // Adjust this factor as needed
 
-      // // Compute perspective offset
-      // vec3 perspective = normalize(viewDirTS) / facingCoefficient;
-      // vec2 parallaxOffset = perspective.xy * facingCoefficient;
+      // Depth distances for each circle layer
+      float depthDist1 = 0.0; // Blue circle (outermost)
+      float depthDist2 = 0.5; // Green circle (middle)
+      float depthDist3 = 1.0; // Red circle (innermost)
 
-      // // Depth distances for each circle layer
-      // float detphDist1 = 0.02; // Blue circle (innermost)
-      // float detphDist2 = 0.04; // Green circle (middle)
-      // float detphDist3 = 0.1; // Red circle (outermost)
+      // Apply constrained offsets
+      vec2 offset1 = depthDist1 * perspective.xy;
+      vec2 offset2 = depthDist2 * perspective.xy;
+      vec2 offset3 = depthDist3 * perspective.xy;
 
-      // // Apply constrained offsets
-      // vec2 offset1 = detphDist1 * perspective.xy;
-      // vec2 offset2 = detphDist2 * perspective.xy;
-      // vec2 offset3 = detphDist3 * perspective.xy;
+      // Compute SDF for each circle with offsets
+      float shape1 = sdfCircle(parallaxUv, 0.1, offset1);  // Blue
+      float shape2 = sdfCircle(parallaxUv, 0.14, offset2); // Green
+      float shape3 = sdfCircle(parallaxUv, 0.18, offset3); // Red
 
-      // // Compute SDF for each circle with offsets
-      // float shape1 = sdfCircle(parallaxUv, 0.1, offset1);  // Blue
-      // float shape2 = sdfCircle(parallaxUv, 0.14, offset2); // Green
-      // float shape3 = sdfCircle(parallaxUv, 0.18, offset3); // Red
-
-      // /* Blend colors */
-      // color = mix(vec3(1, 0, 0), color, step(0., shape3)); // Red
-      // color = mix(vec3(0, 1, 0), color, step(0., shape2)); // Green
-      // color = mix(vec3(0, 0, 1), color, step(0., shape1)); // Blue
+      /* Blend colors */
+      color = mix(vec3(1, 0, 0), color, step(0., shape3)); // Red
+      color = mix(vec3(0, 1, 0), color, step(0., shape2)); // Green
+      color = mix(vec3(0, 0, 1), color, step(0., shape1)); // Blue
 
       gl_FragColor = vec4(color, 1.0);
     }
@@ -197,12 +199,30 @@ const Window = ({ size = [2, 2, 1], position = [0, 1, 5], rotation = [0, -Math.P
 }) => {
   const cubemap_albedo = useTexture('/textures/cubemap-faces.png')
 
+  // Compute the rotation matrix from Euler angles (X, Y, Z)
+  const cosX = Math.cos(rotation[0]), sinX = Math.sin(rotation[0]);
+  const cosY = Math.cos(rotation[1]), sinY = Math.sin(rotation[1]);
+  const cosZ = Math.cos(rotation[2]), sinZ = Math.sin(rotation[2]);
+
+  const rotationMatrix = [
+    cosY * cosZ,
+    sinX * sinY * cosZ - cosX * sinZ,
+    cosX * sinY * cosZ + sinX * sinZ,
+    cosY * sinZ,
+    sinX * sinY * sinZ + cosX * cosZ,
+    cosX * sinY * sinZ - sinX * cosZ,
+    -sinY,
+    sinX * cosY,
+    cosX * cosY
+  ];
+
   return (
     <mesh position={position} rotation={rotation}>
       <planeGeometry args={size} />
       <shaderMaterial
         uniforms={{
           uPlanePosition: { value: position },
+          uPlaneRotation: { value: rotationMatrix }, // Pass the rotation matrix
           room_size: { value: size[0] },
           cubemap_albedo: { value: cubemap_albedo },
           room_depth: { value: size[2] },
@@ -229,4 +249,4 @@ const WindowsInCircle = ({ count = 8, radius = 5 }: { count?: number, radius?: n
   )
 }
 
-export default Window
+export default WindowsInCircle
