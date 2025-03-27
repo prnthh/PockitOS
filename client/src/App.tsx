@@ -15,6 +15,7 @@ import Ground from './rigs/ground';
 import MetaCamera from './gizmos/MetaCamera';
 import Thing from './rigs/thing';
 import Building from './rigs/building';
+import Window from './vfx/window';
 
 function App() {
 
@@ -60,6 +61,8 @@ function Game() {
       <Thing model="burger.glb" />
       <Building model="lamppost2.glb" />
       <Ground />
+
+      <Window />
     </Physics>
 
     <ambientLight intensity={0.3} />
