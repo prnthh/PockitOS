@@ -1,4 +1,6 @@
 import { useTexture } from '@react-three/drei'
+import { useEffect, useRef, useState } from 'react'
+import * as THREE from 'three'
 
 // Helper function to create a range of numbers
 const range = (start: number, end: number) =>
@@ -216,6 +218,8 @@ const Window = ({ size = [2, 2, 1], position = [0, 1, 5], rotation = [0, -Math.P
   rotation?: [number, number, number],
 }) => {
   // Load textures
+  const meshRef = useRef<THREE.Mesh | null>(null)
+  const [worldPosition, setWorldPosition] = useState([0, 0, 0])
   const cubemap_albedo = useTexture('/textures/cubemap-faces.png')
   const texture1 = useTexture('/textures/image1.png') // Front layer
   const texture2 = useTexture('/textures/image2.png') // Middle layer
@@ -237,13 +241,19 @@ const Window = ({ size = [2, 2, 1], position = [0, 1, 5], rotation = [0, -Math.P
     sinX * cosY,
     cosX * cosY
   ];
+  useEffect(() => {
+    if (meshRef.current) {
+      const pos = meshRef.current.getWorldPosition(new THREE.Vector3());
+      setWorldPosition([pos.x, pos.y, pos.z]);
+    }
+  }, [meshRef.current])
 
   return (
-    <mesh position={position} rotation={rotation}>
+    <mesh ref={meshRef} position={position} rotation={rotation}>
       <planeGeometry args={size} />
       <shaderMaterial
         uniforms={{
-          uPlanePosition: { value: position },
+          uPlanePosition: { value: worldPosition },
           uPlaneRotation: { value: rotationMatrix },
           room_size: { value: size[0] }, // Assuming square plane (width = height)
           cubemap_albedo: { value: cubemap_albedo },
