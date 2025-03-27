@@ -5,19 +5,21 @@ const range = (start: number, end: number) =>
   Array.from({ length: end - start + 1 }, (_, i) => start + i)
 
 const helpers =/* glsl */ `
-  float sdfCircle(vec2 uv, float r, vec2 offset) {
-    float x = uv.x - offset.x;
-    float y = uv.y - offset.y;
-    return length(vec2(x, y)) - r;
+  float sdfSquare(vec2 uv, vec2 size, vec2 offset) {
+    vec2 d = abs(uv - offset) - size;
+    return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0);
   }
 `
 
 const params =/* glsl */ `
   uniform vec3 uPlanePosition;
-  uniform mat3 uPlaneRotation; // Added plane rotation uniform
+  uniform mat3 uPlaneRotation;
   uniform float room_size;
   uniform float room_depth;
   uniform sampler2D cubemap_albedo;
+  uniform sampler2D texture1;
+  uniform sampler2D texture2;
+  uniform sampler2D texture3;
   uniform float emission_strength;
 
   varying vec3 obj_vertex;
@@ -95,7 +97,7 @@ const interiorCubeMap = {
     }
 
     void main() {
-      vec3 color = vec3(0.);
+      vec4 color = vec4(0.0);
       
       /* Cube Mapping */
       vec3 cm_face = vec3(0., 0., 1.);
@@ -140,7 +142,7 @@ const interiorCubeMap = {
       cm_uv.x = clamp(cm_uv.x, 0., 1.);
       cm_uv.y = clamp(cm_uv.y, 0., 1.);
       
-      color = sample_cubemap(cubemap_albedo, cm_uv, cm_face);
+      color = vec4(sample_cubemap(cubemap_albedo, cm_uv, cm_face), 1.0);
 
       /* Parallax */
       vec2 parallaxUv = vUv - 0.5;
@@ -155,39 +157,55 @@ const interiorCubeMap = {
       vec3 normalTS = vec3(0.0, 0.0, 1.0);
 
       // Compute facing coefficient (clamp to avoid extremes)
-      float facingCoefficient = max(dot(viewDirTS, normalTS), 1.0); // Avoid division by near-zero
-      
-      // Compute distance from camera to plane (in world space)
-      float distanceToPlane = length(cameraPosition - uPlanePosition);
-      
-      // Scale parallax effect inversely with distance (closer = stronger effect)
-      float distanceScale = 0.1 / distanceToPlane; // Adjust this factor as needed
-      
-      // Compute perspective offset with distance scaling
-      vec3 perspective = viewDirTS / facingCoefficient;
-      vec2 parallaxOffset = perspective.xy * facingCoefficient * distanceScale / 100.0; // Adjust this factor as needed
+      float facingCoefficient = max(dot(viewDirTS, normalTS), 0.2); // Avoid division by zero
 
-      // Depth distances for each circle layer
-      float depthDist1 = 0.0; // Blue circle (outermost)
-      float depthDist2 = 0.5; // Green circle (middle)
-      float depthDist3 = 1.0; // Red circle (innermost)
+      // Compute perspective offset with increased scaling for visibility
+      vec3 perspective = viewDirTS / facingCoefficient;
+
+      // Depth distances for each layer
+      float depthDist1 = 0.0; // Front layer (texture1)
+      float depthDist2 = 0.5; // Middle layer (texture2)
+      float depthDist3 = 1.0; // Back layer (texture3)
 
       // Apply constrained offsets
       vec2 offset1 = depthDist1 * perspective.xy;
       vec2 offset2 = depthDist2 * perspective.xy;
       vec2 offset3 = depthDist3 * perspective.xy;
 
-      // Compute SDF for each circle with offsets
-      float shape1 = sdfCircle(parallaxUv, 0.1, offset1);  // Blue
-      float shape2 = sdfCircle(parallaxUv, 0.14, offset2); // Green
-      float shape3 = sdfCircle(parallaxUv, 0.18, offset3); // Red
+      // Define square size (slightly smaller than plane to allow movement)
+      vec2 squareSize = vec2(room_size * 0.25, room_size * 0.25); // Reduced to 80% of plane size
 
-      /* Blend colors */
-      color = mix(vec3(1, 0, 0), color, step(0., shape3)); // Red
-      color = mix(vec3(0, 1, 0), color, step(0., shape2)); // Green
-      color = mix(vec3(0, 0, 1), color, step(0., shape1)); // Blue
+      // Compute SDF for each square layer
+      float shape1 = sdfSquare(parallaxUv, squareSize, offset1);
+      float shape2 = sdfSquare(parallaxUv, squareSize, offset2);
+      float shape3 = sdfSquare(parallaxUv, squareSize, offset3);
 
-      gl_FragColor = vec4(color, 1.0);
+      // Blend textures from back to front with alpha support
+      // Back layer (texture3)
+      vec2 texUv3 = (parallaxUv - offset3 + squareSize) / (2.0 * squareSize); // Map to [0, 1]
+      texUv3 = clamp(texUv3, 0.0, 1.0); // Prevent texture bleeding
+      vec4 texColor3 = texture2D(texture3, texUv3);
+      float mask3 = 1.0 - step(0., shape3); // 1 inside, 0 outside
+      color.rgb = mix(color.rgb, texColor3.rgb, texColor3.a * mask3);
+      color.a = mix(color.a, 1.0, texColor3.a * mask3);
+
+      // Middle layer (texture2)
+      vec2 texUv2 = (parallaxUv - offset2 + squareSize) / (2.0 * squareSize);
+      texUv2 = clamp(texUv2, 0.0, 1.0);
+      vec4 texColor2 = texture2D(texture2, texUv2);
+      float mask2 = 1.0 - step(0., shape2);
+      color.rgb = mix(color.rgb, texColor2.rgb, texColor2.a * mask2);
+      color.a = mix(color.a, 1.0, texColor2.a * mask2);
+
+      // Front layer (texture1)
+      vec2 texUv1 = (parallaxUv - offset1 + squareSize) / (2.0 * squareSize);
+      texUv1 = clamp(texUv1, 0.0, 1.0);
+      vec4 texColor1 = texture2D(texture1, texUv1);
+      float mask1 = 1.0 - step(0., shape1);
+      color.rgb = mix(color.rgb, texColor1.rgb, texColor1.a * mask1);
+      color.a = mix(color.a, 1.0, texColor1.a * mask1);
+
+      gl_FragColor = color;
     }
   `
 }
@@ -197,7 +215,11 @@ const Window = ({ size = [2, 2, 1], position = [0, 1, 5], rotation = [0, -Math.P
   position?: [number, number, number],
   rotation?: [number, number, number],
 }) => {
+  // Load textures
   const cubemap_albedo = useTexture('/textures/cubemap-faces.png')
+  const texture1 = useTexture('/textures/image1.png') // Front layer
+  const texture2 = useTexture('/textures/image2.png') // Middle layer
+  const texture3 = useTexture('/textures/image3.png') // Back layer
 
   // Compute the rotation matrix from Euler angles (X, Y, Z)
   const cosX = Math.cos(rotation[0]), sinX = Math.sin(rotation[0]);
@@ -222,14 +244,18 @@ const Window = ({ size = [2, 2, 1], position = [0, 1, 5], rotation = [0, -Math.P
       <shaderMaterial
         uniforms={{
           uPlanePosition: { value: position },
-          uPlaneRotation: { value: rotationMatrix }, // Pass the rotation matrix
-          room_size: { value: size[0] },
+          uPlaneRotation: { value: rotationMatrix },
+          room_size: { value: size[0] }, // Assuming square plane (width = height)
           cubemap_albedo: { value: cubemap_albedo },
           room_depth: { value: size[2] },
-          emission_strength: { value: 1.0 }
+          emission_strength: { value: 1.0 },
+          texture1: { value: texture1 },
+          texture2: { value: texture2 },
+          texture3: { value: texture3 },
         }}
         vertexShader={interiorCubeMap.vertexShader}
         fragmentShader={interiorCubeMap.fragmentShader}
+        transparent={true} // Enable transparency in the material
       />
     </mesh>
   )
