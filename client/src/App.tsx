@@ -4,7 +4,7 @@ import './App.css';
 import { Canvas } from '@react-three/fiber'
 import Controls from './controllers/Controls';
 import Dialog from './ui/dialog';
-import { useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState, store } from './store/store';
 import { Provider } from 'react-redux'
 import { addNPC } from './store/PersonSlice';
@@ -16,6 +16,8 @@ import MetaCamera from './gizmos/MetaCamera';
 import Thing from './rigs/thing';
 import Building from './rigs/building';
 import Window from './vfx/window';
+import Lightsource from './rigs/lightsource';
+import { getPersonIds } from './store/personSelectors';
 
 function App() {
 
@@ -30,7 +32,7 @@ function App() {
 }
 
 function Game() {
-  const people = useSelector((state: RootState) => state.persons)
+  const people = useSelector((state: RootState) => getPersonIds(state), shallowEqual);
   const dispatch = useDispatch<AppDispatch>()
 
   useEffect(() => {
@@ -38,31 +40,35 @@ function Game() {
       id: "rigga",
       position: [5, 1, 10]
     }))
-    dispatch(addNPC({
-      id: "rigga2",
-      position: [-5, 1, 10]
-    }))
-    dispatch(addNPC({
-      id: "rigga3",
-      position: [0, 1, 10]
-    }))
+    // dispatch(addNPC({
+    //   id: "rigga2",
+    //   position: [-5, 1, 10]
+    // }))
+    // dispatch(addNPC({
+    //   id: "rigga3",
+    //   position: [0, 1, 10]
+    // }))
   }, [])
+
+  const renderedPeople = useMemo(() =>
+    people.map((personId) => <Ped key={personId} id={personId} />),
+    [people]
+  );
 
   return <Canvas className='select-none touch-none' shadows style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}>
     <color attach="background" args={['#222233']} />
     <fogExp2 attach="fog" args={['#222233', 0.04]} />
 
     <Physics debug>
-      {Object.keys(people).map((personId) => {
-        return <Ped key={personId} id={personId} />
-      })}
+      {renderedPeople}
+
 
       <CharacterController />
       <Thing model="burger.glb" />
-      <Building model="lamppost2.glb" />
+      <Lightsource model="lamppost2.glb" />
+      <Building />
       <Ground />
 
-      <Window />
     </Physics>
 
     <ambientLight intensity={0.3} />

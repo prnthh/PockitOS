@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RapierRigidBody } from "@react-three/rapier";
 import { selectPersonById } from "../store/personSelectors";
@@ -59,38 +59,8 @@ export default function NPCController({
         };
     }, [dispatch, id, person.currentGoal]);
 
-    // Handle different goals
-    useEffect(() => {
-        if (!rigidBodyRef.current || !person.currentGoal) return;
-
-        switch (person.currentGoal) {
-            case "wander":
-                handleWander();
-                break;
-            case "interactWithPlayer":
-                handleInteractWithPlayer();
-                break;
-            case "takeItem":
-                handleInteractWithItem();
-                break;
-            case "interactWithNPC":
-                handleInteractWithNPC();
-                break;
-            case "followPath":
-                handleFollowPath();
-                break;
-            case "idle":
-            default:
-                if (person.currentAction !== "idle") {
-                    dispatch(setCurrentAction({ id, action: "idle" }));
-                    setAnimation("idle");
-                }
-                break;
-        }
-    }, [person.currentGoal, person.currentAction, id, dispatch]);
-
-    // Handle wander behavior
-    const handleWander = () => {
+    // Memoize handler functions
+    const handleWander = useCallback(() => {
         if (person.currentAction === "wait" || person.currentAction === "recover") {
             return;
         }
@@ -124,10 +94,9 @@ export default function NPCController({
                 }, 3000 + Math.random() * 3000);
             }, 5000 + Math.random() * 5000);
         }
-    };
+    }, [id, dispatch, setTarget, person.currentAction]);
 
-    // Stub for player interaction
-    const handleInteractWithPlayer = () => {
+    const handleInteractWithPlayer = useCallback(() => {
         if (interactionCooldownRef.current) return;
 
         // Logic for finding and approaching the player would go here
@@ -144,10 +113,9 @@ export default function NPCController({
                 interactionCooldownRef.current = false;
             }, 10000);
         }, 3000);
-    };
+    }, [id, dispatch, setAnimation]);
 
-    // Stub for item interaction
-    const handleInteractWithItem = () => {
+    const handleInteractWithItem = useCallback(() => {
         if (interactionCooldownRef.current) {
             dispatch(setCurrentGoal({ id, goal: "wander" }));
             return;
@@ -181,10 +149,9 @@ export default function NPCController({
                 }, 10000);
             }, 2000);
         }, 3000);
-    };
+    }, [id, dispatch, setTarget, setAnimation, person.position]);
 
-    // Stub for NPC-to-NPC interaction
-    const handleInteractWithNPC = () => {
+    const handleInteractWithNPC = useCallback(() => {
         if (interactionCooldownRef.current) {
             dispatch(setCurrentGoal({ id, goal: "wander" }));
             return;
@@ -217,14 +184,58 @@ export default function NPCController({
                 }, 15000);
             }, 3000);
         }, 4000);
-    };
+    }, [id, dispatch, setTarget, setAnimation]);
 
-    // Stub for following a predetermined path
-    const handleFollowPath = () => {
+    const handleFollowPath = useCallback(() => {
         // Logic for following waypoints would go here
         // For now, just wander
         dispatch(setCurrentGoal({ id, goal: "wander" }));
-    };
+    }, [id, dispatch]);
+
+    // Handle different goals
+    useEffect(() => {
+        if (!rigidBodyRef.current || !person.currentGoal) return;
+
+        console.log("Handling goal", person.currentGoal);
+
+
+        switch (person.currentGoal) {
+            case "wander":
+                handleWander();
+                break;
+            case "interactWithPlayer":
+                handleInteractWithPlayer();
+                break;
+            case "takeItem":
+                handleInteractWithItem();
+                break;
+            case "interactWithNPC":
+                handleInteractWithNPC();
+                break;
+            case "followPath":
+                handleFollowPath();
+                break;
+            case "idle":
+            default:
+                if (person.currentAction !== "idle") {
+                    dispatch(setCurrentAction({ id, action: "idle" }));
+                    setAnimation("idle");
+                }
+                break;
+        }
+    }, [
+        person.currentGoal,
+        dispatch,
+        id,
+        handleWander,
+        handleInteractWithPlayer,
+        handleInteractWithItem,
+        handleInteractWithNPC,
+        handleFollowPath,
+        rigidBodyRef,
+        setAnimation,
+        person.currentAction
+    ]);
 
     return null; // This component doesn't render anything
 }

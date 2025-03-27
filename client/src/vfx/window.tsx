@@ -271,9 +271,9 @@ const Window = ({ size = [2, 2, 1], position = [0, 1, 5], rotation = [0, -Math.P
   )
 }
 
-const WindowsInCircle = ({ count = 8, radius = 5 }: { count?: number, radius?: number }) => {
+const WindowsInCircle = ({ position, count = 8, radius = 5 }: { position: [number, number, number], count?: number, radius?: number }) => {
   return (
-    <>
+    <group position={position}>
       {range(0, count).map((i) => {
         const angle = (i / count) * Math.PI * 2
         const x = Math.cos(angle) * radius
@@ -281,8 +281,8 @@ const WindowsInCircle = ({ count = 8, radius = 5 }: { count?: number, radius?: n
 
         return <Window key={i} position={[x, 1, z]} rotation={[0, -angle - Math.PI / 2, 0]} />
       })}
-    </>
+    </group>
   )
 }
 
-export default WindowsInCircle
+export default Window
