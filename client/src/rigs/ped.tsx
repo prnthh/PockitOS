@@ -3,7 +3,7 @@ import React, { memo, useRef, useState, useEffect, Suspense } from "react";
 import { Box, Html } from "@react-three/drei";
 import usePhysicsWalk from "../controllers/usePhysicsWalk";
 import useUnstableWalk from "../controllers/useUnstableWalk";
-import NPCController from "../controllers/NPCController";
+import NPCController from "../controllers/npc/NPCController";
 import useGameStore, { NpcEntity } from "../store/gameStore";
 import { useShallow } from 'zustand/react/shallow'
 import AnimatedModel from "../gizmos/AnimatedModel";
