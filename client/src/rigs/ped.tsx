@@ -1,35 +1,40 @@
 import { CapsuleCollider, CuboidCollider, RapierRigidBody, RigidBody } from "@react-three/rapier";
-import React, { memo, useRef, useState, useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { selectPersonById } from "../store/personSelectors";
-import { AppDispatch, RootState } from "../store/store";
-import AnimatedModel from "../gizmos/AnimatedModel";
+import React, { memo, useRef, useState, useEffect, Suspense } from "react";
 import { Box, Html } from "@react-three/drei";
 import usePhysicsWalk from "../controllers/usePhysicsWalk";
-import { makeCameraTarget, setRigidBody } from "../store/PersonSlice";
 import useUnstableWalk from "../controllers/useUnstableWalk";
 import NPCController from "../controllers/NPCController";
+import useGameStore, { NpcEntity } from "../store/gameStore";
+import { useShallow } from 'zustand/react/shallow'
+import AnimatedModel from "../gizmos/AnimatedModel";
 
 const Ped = memo(({ id }: { id: string }) => {
-    const person = useSelector((state: RootState) => selectPersonById(state, id));
+    const { updateEntity } = useGameStore();
+    const person = useGameStore(
+        useShallow((state) => state.entities[id] as NpcEntity)
+    )
+
     const rigidBodyRef = useRef<RapierRigidBody>(null);
     const [animation, setAnimation] = useState<string>("idle");
-    const dispatch = useDispatch<AppDispatch>();
+
+    const { isMoving, targetReached } = usePhysicsWalk(
+        rigidBodyRef,
+        setAnimation,
+        person.currentAction || 'idle',
+    );
 
     const { fallenOver, setFallenOver } = useUnstableWalk(id, rigidBodyRef, setAnimation);
 
-    const { target, setTarget } = usePhysicsWalk(rigidBodyRef, setAnimation, () => {
-        // When destination reached, set new destination
-        setTarget([Math.random() * 10 - 5, 0, Math.random() * 10 - 5]);
-    });
-
     useEffect(() => {
         if (!rigidBodyRef || !rigidBodyRef.current) return;
-        dispatch(setRigidBody({ id, rb: rigidBodyRef as React.RefObject<RapierRigidBody> }));
-    }, [rigidBodyRef]);
+
+        updateEntity(id, {
+            rigidbodyhandle: rigidBodyRef.current.handle,
+        });
+    }, [rigidBodyRef.current]);
 
     return (
-        <>
+        <Suspense fallback={null}>
             <RigidBody
                 ref={rigidBodyRef}
                 type="dynamic"
@@ -42,8 +47,6 @@ const Ped = memo(({ id }: { id: string }) => {
                     console.log('onCollisionEnter', e)
                     // @ts-ignore
                     if (e.other.rigidBody?.userData?.type === 'player') {
-                        setTarget(undefined)
-                        // make the player fall over
                         setFallenOver(true)
                     }
                 }}
@@ -56,20 +59,16 @@ const Ped = memo(({ id }: { id: string }) => {
                 <AnimatedModel model={`/${id}.glb`} animation={animation}
                     height={0.45}
                     onClick={() => {
-                        dispatch(makeCameraTarget(id))
-                        setTarget(undefined)
-
+                        // Handling click
                     }} />
             </RigidBody>
-
-            {/* Add NPC behavior controller */}
             <NPCController
                 id={id}
-                rigidBodyRef={rigidBodyRef}
                 setAnimation={setAnimation}
-                setTarget={setTarget}
+                isMoving={isMoving}
+                targetReached={targetReached}
             />
-        </>
+        </Suspense>
     );
 });
 

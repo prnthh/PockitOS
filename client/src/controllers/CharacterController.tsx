@@ -5,9 +5,6 @@ import { useEffect, useRef, useState } from "react";
 import { MathUtils, Vector3 } from "three";
 import { Group } from 'three';
 import AnimatedModel from "../gizmos/AnimatedModel";
-import { useSelector } from "react-redux";
-import { RootState } from "../store/store";
-import { getCameraTarget } from "../store/personSelectors";
 
 const normalizeAngle = (angle: number): number => {
     while (angle > Math.PI) angle -= 2 * Math.PI;
@@ -49,7 +46,6 @@ export const CharacterController = () => {
     const cameraWorldPosition = useRef(new Vector3());
     const cameraLookAtWorldPosition = useRef(new Vector3());
     const cameraLookAt = useRef(new Vector3());
-    const targetId = useSelector((state: RootState) => getCameraTarget(state));
 
     const [animation, setAnimation] = useState<AnimationState>("idle");
 
@@ -161,7 +157,7 @@ export const CharacterController = () => {
             0.1
         );
 
-        if (!targetId) {
+        if (true) {
             if (cameraPosition.current) {
                 cameraPosition.current.getWorldPosition(cameraWorldPosition.current);
                 camera.position.lerp(cameraWorldPosition.current, 0.1);

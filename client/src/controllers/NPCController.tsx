@@ -1,241 +1,163 @@
-import { useEffect, useRef, useCallback } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { RapierRigidBody } from "@react-three/rapier";
-import { selectPersonById } from "../store/personSelectors";
-import { RootState } from "../store/store";
-import { addToInventory, setCurrentAction, setCurrentGoal } from "../store/PersonSlice";
+import { useEffect, useRef } from "react";
+import { useFrame } from "@react-three/fiber";
+import useGameStore, { ThingEntity } from "../store/gameStore";
+import { useShallow } from "zustand/react/shallow";
+import { ExtractState } from "zustand";
+import { NpcEntity } from "../store/gameStore";
+import { useRapier } from "@react-three/rapier";
+import { Vector3 } from "three";
 
 // Possible NPC goals
-export type NPCGoal =
-    | "idle"
-    | "wander"
-    | "interactWithPlayer"
-    | "takeItem"
-    | "moveItem"
-    | "interactWithNPC"
-    | "followPath";
+export type NPCGoal = "idle" | "wander";
 
 // Possible NPC actions
-export type NPCAction =
-    | "idle"
-    | "walk"
-    | "run"
-    | "talk"
-    | "pickup"
-    | "use"
-    | "give"
-    | "wait"
-    | "recover";
 
 interface NPCControllerProps {
     id: string;
-    rigidBodyRef: React.RefObject<RapierRigidBody | null>;
     setAnimation: (animation: string) => void;
-    setTarget: (target: number[] | undefined) => void;
+    isMoving: boolean;
+    targetReached: boolean;
 }
+
+type NPCState = ExtractState<typeof useGameStore>
 
 export default function NPCController({
     id,
-    rigidBodyRef,
     setAnimation,
-    setTarget,
+    isMoving,
+    targetReached,
 }: NPCControllerProps) {
-    const person = useSelector((state: RootState) => selectPersonById(state, id));
-    const dispatch = useDispatch();
-    const goalTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const interactionCooldownRef = useRef<boolean>(false);
+    const { updateEntity, findNearestEntity, removeEntity } = useGameStore();
+    const person = useGameStore(
+        useShallow((state) => {
+            const entity = state.entities[id];
+            // Type guard to ensure we have an NpcEntity
+            return entity && entity.type === "npc" ? entity as NpcEntity : undefined;
+        })
+    );
+    const waitTimeRef = useRef(0); // Time remaining for "wait" state
+    const goalChangeCooldownRef = useRef(0); // Cooldown before changing goals
 
-    // Goal management
+    const { world } = useRapier();
+
+    // Initialize goal if none exists
     useEffect(() => {
-        // Initialize goal if none exists
-        if (!person.currentGoal) {
-            dispatch(setCurrentGoal({ id, goal: "wander" }));
+        if (!person?.currentGoal) {
+            updateEntity(id, { currentGoal: "wander" });
         }
+    }, [id, person?.currentGoal]);
 
-        return () => {
-            if (goalTimeoutRef.current) {
-                clearTimeout(goalTimeoutRef.current);
-            }
-        };
-    }, [dispatch, id, person.currentGoal]);
-
-    // Memoize handler functions
-    const handleWander = useCallback(() => {
-        if (person.currentAction === "wait" || person.currentAction === "recover") {
-            return;
-        }
-
-        if (person.currentAction !== "walk" && person.currentAction !== "run") {
-            // Set random position within a reasonable distance
-            const randomPosition: [number, number, number] = [
-                Math.random() * 20 - 10,
-                0,
-                Math.random() * 20 - 10
-            ];
-
-            setTarget(randomPosition);
-            dispatch(setCurrentAction({ id, action: "walk" }));
-
-            // After walking for a while, wait
-            goalTimeoutRef.current = setTimeout(() => {
-                dispatch(setCurrentAction({ id, action: "wait" }));
-                setTarget(undefined);
-
-                // After waiting, go back to wandering
-                goalTimeoutRef.current = setTimeout(() => {
-                    dispatch(setCurrentAction({ id, action: "idle" }));
-
-                    // Occasionally change to a different goal
-                    if (Math.random() > 0.7 && !interactionCooldownRef.current) {
-                        const goals: NPCGoal[] = ["idle", "wander", "interactWithNPC"];
-                        const randomGoal = goals[Math.floor(Math.random() * goals.length)];
-                        dispatch(setCurrentGoal({ id, goal: randomGoal }));
-                    }
-                }, 3000 + Math.random() * 3000);
-            }, 5000 + Math.random() * 5000);
-        }
-    }, [id, dispatch, setTarget, person.currentAction]);
-
-    const handleInteractWithPlayer = useCallback(() => {
-        if (interactionCooldownRef.current) return;
-
-        // Logic for finding and approaching the player would go here
-        dispatch(setCurrentAction({ id, action: "talk" }));
-        setAnimation("idle"); // Could use a talk animation if available
-
-        goalTimeoutRef.current = setTimeout(() => {
-            dispatch(setCurrentAction({ id, action: "idle" }));
-            dispatch(setCurrentGoal({ id, goal: "wander" }));
-
-            // Set cooldown to prevent immediate re-interaction
-            interactionCooldownRef.current = true;
-            setTimeout(() => {
-                interactionCooldownRef.current = false;
-            }, 10000);
-        }, 3000);
-    }, [id, dispatch, setAnimation]);
-
-    const handleInteractWithItem = useCallback(() => {
-        if (interactionCooldownRef.current) {
-            dispatch(setCurrentGoal({ id, goal: "wander" }));
-            return;
-        }
-
-        // Logic to find nearest item would go here
-        // For now, just pretend to look for something nearby
-        dispatch(setCurrentAction({ id, action: "walk" }));
-
-        // Set a random nearby position
-        const randomNearbyPos: [number, number, number] = [
-            person.position[0] + (Math.random() * 6 - 3),
-            0,
-            person.position[2] + (Math.random() * 6 - 3)
-        ];
-        setTarget(randomNearbyPos);
-
-        goalTimeoutRef.current = setTimeout(() => {
-            setTarget(undefined);
-            dispatch(setCurrentAction({ id, action: "pickup" }));
-            setAnimation("idle"); // Could use a pickup animation
-            dispatch(addToInventory({ id, item: "item" }));
-
-            goalTimeoutRef.current = setTimeout(() => {
-                dispatch(setCurrentAction({ id, action: "idle" }));
-                dispatch(setCurrentGoal({ id, goal: "wander" }));
-
-                interactionCooldownRef.current = true;
-                setTimeout(() => {
-                    interactionCooldownRef.current = false;
-                }, 10000);
-            }, 2000);
-        }, 3000);
-    }, [id, dispatch, setTarget, setAnimation, person.position]);
-
-    const handleInteractWithNPC = useCallback(() => {
-        if (interactionCooldownRef.current) {
-            dispatch(setCurrentGoal({ id, goal: "wander" }));
-            return;
-        }
-
-        // Logic to find another NPC would go here
-        // For now, just pretend to look for someone
-        dispatch(setCurrentAction({ id, action: "walk" }));
-
-        // Set a random position that might contain another NPC
-        const randomPos: [number, number, number] = [
-            Math.random() * 10 - 5,
-            0,
-            Math.random() * 10 - 5
-        ];
-        setTarget(randomPos);
-
-        goalTimeoutRef.current = setTimeout(() => {
-            setTarget(undefined);
-            dispatch(setCurrentAction({ id, action: "talk" }));
-            setAnimation("idle"); // Could use a talk animation
-
-            goalTimeoutRef.current = setTimeout(() => {
-                dispatch(setCurrentAction({ id, action: "idle" }));
-                dispatch(setCurrentGoal({ id, goal: "wander" }));
-
-                interactionCooldownRef.current = true;
-                setTimeout(() => {
-                    interactionCooldownRef.current = false;
-                }, 15000);
-            }, 3000);
-        }, 4000);
-    }, [id, dispatch, setTarget, setAnimation]);
-
-    const handleFollowPath = useCallback(() => {
-        // Logic for following waypoints would go here
-        // For now, just wander
-        dispatch(setCurrentGoal({ id, goal: "wander" }));
-    }, [id, dispatch]);
-
-    // Handle different goals
+    // Handle target reached event
     useEffect(() => {
-        if (!rigidBodyRef.current || !person.currentGoal) return;
+        if (targetReached && person?.currentAction?.startsWith('walk-')) {
+            updateEntity(id, { currentAction: undefined });
+            waitTimeRef.current = 3; // Wait 3 seconds
+        }
+    }, [targetReached, person?.currentAction]);
 
-        console.log("Handling goal", person.currentGoal);
-
+    const requestNextAction = () => {
+        if (!person) return;
 
         switch (person.currentGoal) {
             case "wander":
-                handleWander();
-                break;
-            case "interactWithPlayer":
-                handleInteractWithPlayer();
-                break;
-            case "takeItem":
-                handleInteractWithItem();
-                break;
-            case "interactWithNPC":
-                handleInteractWithNPC();
-                break;
-            case "followPath":
-                handleFollowPath();
-                break;
-            case "idle":
-            default:
-                if (person.currentAction !== "idle") {
-                    dispatch(setCurrentAction({ id, action: "idle" }));
-                    setAnimation("idle");
+                if (!person.currentAction) {
+                    // Set a new random target when idle
+                    const randomTarget: [number, number, number] = [
+                        person.position[0] + (Math.random() * 20 - 10),
+                        0,
+                        person.position[2] + (Math.random() * 20 - 10),
+                    ];
+                    const walkAction = `walk-${JSON.stringify(randomTarget)}`;
+                    updateEntity(id, { currentAction: walkAction });
+                } else if (person.currentAction === "wait" && waitTimeRef.current <= 0) {
+                    // Wait time over, return to idle and possibly change goal
+                    updateEntity(id, { currentAction: "idle" });
+                    if (goalChangeCooldownRef.current <= 0 && Math.random() > 0.7) {
+                        const goals: NPCGoal[] = ["idle", "wander"];
+                        const newGoal = goals[Math.floor(Math.random() * goals.length)];
+                        updateEntity(id, { currentGoal: newGoal });
+                        goalChangeCooldownRef.current = 10 + Math.random() * 10; // 10-20s cooldown
+                    }
                 }
                 break;
-        }
-    }, [
-        person.currentGoal,
-        dispatch,
-        id,
-        handleWander,
-        handleInteractWithPlayer,
-        handleInteractWithItem,
-        handleInteractWithNPC,
-        handleFollowPath,
-        rigidBodyRef,
-        setAnimation,
-        person.currentAction
-    ]);
 
-    return null; // This component doesn't render anything
+            case "burgerseek":
+                if (!person.currentAction && waitTimeRef.current <= 0) {
+                    const nearestBurger = findNearestEntity(
+                        person.position,
+                        "thing",
+                        (entity) => entity.type == "thing" && entity.name === "burger"
+                    );
+
+                    if (nearestBurger) {
+                        updateEntity(id, { currentAction: "approachBurger" });
+                    }
+                    console.log("nearestBurger", nearestBurger);
+                    waitTimeRef.current = 3; // Wait 3 seconds
+                } else if (person.currentAction === "approachBurger") {
+                    // Wait time over, return to idle and possibly change goal
+                    console.log("waitTimeRef", waitTimeRef.current);
+                    const nearestBurger = findNearestEntity(
+                        person.position,
+                        "thing",
+                        (entity) => entity.type == "thing" && entity.name === "burger"
+                    ) as ThingEntity;
+
+                    const burgerPosition = nearestBurger.rigidbodyhandle && world.getRigidBody(nearestBurger.rigidbodyhandle).translation();
+
+                    const personPosition = person.rigidbodyhandle && world.getRigidBody(person.rigidbodyhandle).translation();
+
+                    if (burgerPosition && personPosition) {
+                        const distance = new Vector3(burgerPosition.x, burgerPosition.y, burgerPosition.z).distanceTo(
+                            new Vector3(personPosition.x, personPosition.y, personPosition.z)
+                        );
+                        console.log("distance", distance);
+                        if (distance < 1) {
+                            removeEntity(nearestBurger.id);
+                            updateEntity(id, { currentAction: "wait" });
+                        }
+                        updateEntity(id, { currentAction: "walk-" + JSON.stringify([burgerPosition.x, burgerPosition.y, burgerPosition.z]) });
+                    } else waitTimeRef.current = 3; // Wait 3 seconds
+                }
+
+                break;
+            case "idle":
+                if (!person.currentAction?.startsWith('recover')) {
+                    updateEntity(id, { currentAction: "idle" });
+                } else if (goalChangeCooldownRef.current <= 0 && Math.random() > 0.5) {
+                    // 50% chance to switch to wander after cooldown
+                    updateEntity(id, { currentGoal: "wander" });
+                    goalChangeCooldownRef.current = 10 + Math.random() * 10; // 10-20s cooldown
+                }
+                break;
+
+            default:
+                updateEntity(id, { currentGoal: "idle" });
+                break;
+        }
+    };
+
+    // State machine logic using frame updates
+    useFrame((state, delta) => {
+        // Update timers
+        if (waitTimeRef.current > 0) {
+            waitTimeRef.current = Math.max(0, waitTimeRef.current - delta);
+        }
+        if (goalChangeCooldownRef.current > 0) {
+            goalChangeCooldownRef.current = Math.max(0, goalChangeCooldownRef.current - delta);
+        }
+
+        requestNextAction();
+    });
+
+    // Sync animation with current action (handled by usePhysicsWalk for "walk"/"run")
+    useEffect(() => {
+        if (!person) return;
+        if (person.currentAction === "idle" || person.currentAction === "wait" || person.currentAction === "recover") {
+            setAnimation(person.currentAction === "recover" ? "recover" : "idle");
+        }
+        // "walk" and "run" animations are set by usePhysicsWalk based on speed
+    }, [person?.currentAction, setAnimation]);
+
+    return null;
 }

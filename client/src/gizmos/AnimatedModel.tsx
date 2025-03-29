@@ -5,16 +5,12 @@ import * as THREE from "three";
 import useAnimationState from "../controllers/useAnimationState";
 import { SkeletonUtils } from "three/examples/jsm/Addons";
 
-// Model cache to store loaded models
-const modelCache = new Map();
-
 const AnimatedModel = ({ model, animation, onClick, height, animationOverrides, ...props }: {
     model: string; animation: string, height: number, animationOverrides?: { [key: string]: string }, onClick?: () => void;
 }) => {
     const groupRef = useRef<THREE.Group>(null);
     const { scene, animations } = useGLTF(model);
     const [clonedScene, setClonedScene] = useState<THREE.Object3D | undefined>(undefined);
-    const [animationAction, setAnimationAction] = useState<THREE.AnimationAction | null>(null);
 
     // Create a clone of the scene to avoid modifying the original
     useEffect(() => {

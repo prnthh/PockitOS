@@ -67,13 +67,11 @@ export default function useAnimationState(
     )
 
     useEffect(() => {
-        console.log('animations', clone)
         if (!clone) return
         const newMixer = new AnimationMixer(clone)
         setMixer(newMixer)
         // todo: sometimes the default is a tpose. filter and do not play.
         // defaultAnims.clips[0] && newMixer.clipAction(defaultAnims.clips[0], clone).fadeIn(0.1).play();
-        console.log('animations', animations)
         return () => {
             newMixer.stopAllAction()
             newMixer.uncacheRoot(newMixer.getRoot())

@@ -1,41 +1,57 @@
 import { useGLTF } from "@react-three/drei";
-import { BallCollider, CuboidCollider, RapierRigidBody, RigidBody } from "@react-three/rapier"
+import { RapierRigidBody, RigidBody } from "@react-three/rapier";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { SkeletonUtils } from "three/examples/jsm/Addons";
+import useGameStore, { ThingEntity } from "../store/gameStore";
+import { useShallow } from "zustand/react/shallow";
 
-const Thing = ({ model }: { model: string }) => {
-    // const person = useSelector((state: RootState) => selectPersonById(state, id));
+const Thing = ({ id }: { id: string }) => {
+    const thing = useGameStore(
+        useShallow((state) => state.entities[id] as ThingEntity)
+    );
+    const { updateEntity } = useGameStore();
 
-    const { scene, animations } = useGLTF(model);
+    const { scene } = useGLTF(`/${thing.name}.glb`);
     const [clonedScene, setClonedScene] = useState<THREE.Object3D | undefined>(undefined);
     const rigidBodyRef = useRef<RapierRigidBody>(null);
 
+    // Clone the scene when it loads
     useEffect(() => {
         if (scene) {
+            console.log("Scene loaded, cloning for", id);
             const cloned = SkeletonUtils.clone(scene);
             cloned.traverse((child: THREE.Object3D) => {
-                if ('isMesh' in child) {
+                if ("isMesh" in child) {
                     child.castShadow = true;
                     child.receiveShadow = true;
                 }
             });
             setClonedScene(cloned);
         }
-    }, [scene]);
+    }, [scene, id]);
 
+    useEffect(() => {
+        if (!rigidBodyRef || !rigidBodyRef.current) return;
 
-    if (!clonedScene) return null;
+        updateEntity(id, {
+            rigidbodyhandle: rigidBodyRef.current.handle,
+        });
+    }, [rigidBodyRef.current]);
 
     return (
-        <RigidBody
-            ref={rigidBodyRef}
-            linearDamping={0.5}
-            angularDamping={0.5}
-        >
-            <primitive object={clonedScene} />
-        </RigidBody>
+        <>
+            {clonedScene && (
+                <RigidBody
+                    ref={rigidBodyRef} // Use callback ref
+                    position={thing.position}
+                    softCcdPrediction={1}
+                >
+                    <primitive object={clonedScene} />
+                </RigidBody>
+            )}
+        </>
     );
-}
+};
 
-export default Thing
+export default Thing;

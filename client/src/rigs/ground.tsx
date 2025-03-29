@@ -1,12 +1,18 @@
 import { RigidBody } from "@react-three/rapier";
 import { useTexture } from "@react-three/drei";
 import * as THREE from 'three';
-import { useEffect, useRef } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 
 function Ground() {
     return (
-        <RigidBody type="fixed" position={[0, 0, 0]}>
-            <ImageGround />
+        <RigidBody type="fixed" position={[0, 0, 0]} contactSkin={0.01}>
+            <Suspense fallback={<>
+                <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+                    <planeGeometry args={[100, 100]} />
+                </mesh>
+            </>}>
+                <ImageGround />
+            </Suspense>
         </RigidBody>
     );
 }
