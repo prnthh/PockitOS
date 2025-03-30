@@ -20,7 +20,10 @@ const usePhysicsWalk = (
 
     // Parse target from action
     const parseTargetFromAction = (action: string): number[] | undefined => {
-        if (!action.startsWith('walk-')) return undefined;
+        if (!action.startsWith('walk-')) {
+            targetReached.current = true;
+            return undefined;
+        }
 
         try {
             const coordsStr = action.substring(5); // Remove 'walk-'
@@ -36,6 +39,8 @@ const usePhysicsWalk = (
 
     useEffect(() => {
         const newTarget = parseTargetFromAction(currentAction);
+
+        if (currentAction === "recover") return;
 
         // Update target and reset state if it changes
         if (JSON.stringify(target.current) !== JSON.stringify(newTarget)) {
@@ -53,13 +58,7 @@ const usePhysicsWalk = (
 
     useFrame((state, delta) => {
         const rigidBody = rigidBodyRef.current;
-        if (!rigidBody || !target.current || targetReached.current) {
-            if (rigidBody) {
-                rigidBody.setLinvel({ x: 0, y: rigidBody.linvel().y, z: 0 }, true);
-                setAnimation("idle");
-            }
-            return;
-        }
+        if (!rigidBody || !target.current || targetReached.current) return;
 
         // Calculate path
         const position = rigidBody.translation();

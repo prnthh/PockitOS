@@ -22,6 +22,7 @@ export interface NpcEntity extends BaseEntity {
   type: 'npc';
   currentGoal: string;
   currentAction?: string;
+  inventory?: ThingEntity[];
 }
 
 export interface ThingEntity extends BaseEntity {
@@ -45,6 +46,8 @@ interface GameState {
   addEntity: (entity: Entity) => void;
   removeEntity: (id: string) => void;
   updateEntity: (id: string, updates: Partial<Entity>) => void;
+  addToInventory: (id: string, item: string) => void;
+  removeFromInventory: (id: string, item: string, position: Position) => void;
   
   // Queries
   getEntitiesByType: <T extends Entity>(type: string) => T[];
@@ -111,6 +114,46 @@ const useGameStore = create<GameState>((set, get) => ({
         },
       };
     }),
+  addToInventory: (id: string, item: string) =>
+    set((state) => {
+      const entity = state.entities[id];
+      if (!entity || entity.type !== 'npc') return state;
+      const inventory = entity.inventory || [];
+      const thingEntity = Object.values(state.entities).find(
+        e => e.type === 'thing' && e.id === item
+      );
+
+      if (!thingEntity || !(thingEntity.type === 'thing')) return state;
+      
+      const updatedEntities = {...state.entities, [id]: { ...entity, inventory: [...inventory, thingEntity] }};
+      
+      // Remove the thing entity if it exists
+      if (thingEntity) {
+        const { [thingEntity.id]: _, ...restEntities } = updatedEntities;
+        return { entities: restEntities };
+      }
+      
+      return { entities: updatedEntities };
+    }
+    ),
+    removeFromInventory: (id: string, item: string, position: Position) =>
+    set((state) => {
+      const entity = state.entities[id];
+      if (!entity || entity.type !== 'npc') return state;
+      const inventory = entity.inventory || [];
+      
+      // Create a new thing entity with the removed item
+      const removedItem = inventory.find((i) => i.id === item);
+      if (!removedItem) return state;
+
+      return {
+      entities: {
+        ...state.entities,
+        [id]: { ...entity, inventory: inventory.filter((i) => i.id !== item) },
+        [item]: { ...removedItem, position }
+      },
+      };
+    }),
 
   // Query functions
   getEntitiesByType: <T extends Entity>(type: string) =>
@@ -122,7 +165,7 @@ const useGameStore = create<GameState>((set, get) => ({
     if (entities.length === 0) return null;
     return entities.reduce(
       (nearest, entity) => {
-        const dist = distance(position, entity.position);
+        const dist = distance(position, entity?.position);
         return dist < nearest.dist ? { entity, dist } : nearest;
       },
       { entity: null as T | null, dist: Infinity }

@@ -1,4 +1,4 @@
-import { CapsuleCollider, CuboidCollider, RapierRigidBody, RigidBody } from "@react-three/rapier";
+import { BallCollider, CapsuleCollider, CuboidCollider, RapierRigidBody, RigidBody } from "@react-three/rapier";
 import React, { memo, useRef, useState, useEffect, Suspense } from "react";
 import { Box, Html } from "@react-three/drei";
 import usePhysicsWalk from "../controllers/usePhysicsWalk";
@@ -56,6 +56,7 @@ const Ped = memo(({ id }: { id: string }) => {
                 </Html>
                 <CapsuleCollider args={[0.3, 0.15]} />
                 <CuboidCollider args={[0.2, 0.3, 0.1]} />
+                <BallCollider args={[0.2]} position={[0, 0, 0.2]} sensor />
                 <AnimatedModel model={`/${id}.glb`} animation={animation}
                     height={0.45}
                     onClick={() => {

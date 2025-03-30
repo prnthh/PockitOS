@@ -3,8 +3,6 @@ import { OrbitControls, PerspectiveCamera } from "@react-three/drei"
 import { PerspectiveCamera as ThreePerspectiveCamera, Vector3 } from "three"
 import { useFrame } from "@react-three/fiber"
 import { useSelector } from "react-redux"
-import { RootState } from "../store/store"
-import { getCameraTarget, selectPersonById } from "../store/personSelectors"
 
 const MetaCamera = () => {
     const camera = useRef<ThreePerspectiveCamera>(null)

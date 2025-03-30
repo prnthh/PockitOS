@@ -177,8 +177,8 @@ export const CharacterController = () => {
                 <group ref={cameraTarget} position-z={1.5} />
                 <group ref={cameraPosition} position-y={2} position-z={-3} />
                 <group ref={character}>
-                    <AnimatedModel model="/rigga4.glb" animation={animation} height={0.4}
-                        animationOverrides={{ run: "anim/run2.fbx" }}
+                    <AnimatedModel model="/remilio.glb" animation={animation} height={0.4}
+                        animationOverrides={{ run: "anim/run2.fbx", idle: "anim/idle2.fbx", walk: "anim/walk2.fbx", kick: "anim/kick.fbx", punch: "anim/punch.fbx", }}
                     />
                 </group>
             </group>

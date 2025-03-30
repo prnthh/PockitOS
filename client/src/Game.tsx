@@ -62,23 +62,23 @@ function GameEntities() {
         });
 
         addEntity({
-            id: 'rigga2',
+            id: 'rigga5',
             type: 'npc',
             position: [-1, 1, 1],
             currentGoal: 'wander',
         });
 
-        const interval = setInterval(() => {
+        const interval = setTimeout(() => {
             addEntity({
                 id: `burger${Math.floor(Math.random() * 1000)}`,
                 name: 'burger',
                 type: 'thing',
                 position: [Math.random() * 10 - 5, 0, Math.random() * 10 - 5],
             });
-        }, 10000);
+        }, 4000);
 
         return () => {
-            clearInterval(interval);
+            clearTimeout(interval);
         }
 
 

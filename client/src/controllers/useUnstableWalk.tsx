@@ -2,6 +2,7 @@ import { RapierRigidBody } from "@react-three/rapier";
 import { useRef, useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import useGameStore from "../store/gameStore";
 
 export interface UseUnstableWalkReturn {
     fallenOver: boolean;
@@ -13,6 +14,7 @@ export default function useUnstableWalk(
     rigidBodyRef: React.RefObject<RapierRigidBody | null>,
     setAnimation: (animation: string) => void
 ): UseUnstableWalkReturn {
+    const { updateEntity } = useGameStore();
     const [fallenOver, setFallenOver] = useState(false);
     const [isRecovering, setIsRecovering] = useState(false);
     const recoveryTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -20,10 +22,11 @@ export default function useUnstableWalk(
     // Handle recovery from fallen state
     useEffect(() => {
         if (fallenOver && !isRecovering) {
+            updateEntity(id, { currentAction: 'recover' });
             // Wait a moment before starting recovery
             recoveryTimeoutRef.current = setTimeout(() => {
                 setIsRecovering(true);
-                // dispatch(setCurrentAction({ id, action: "recover" }));
+                console.log("Recovering from fall");
                 setAnimation("idle"); // Could use a "getup" animation if available
             }, 2000);
         }
@@ -75,8 +78,10 @@ export default function useUnstableWalk(
         // Check if we're close enough to upright
         const dot = Math.abs(currentQuat.dot(targetQuat));
         if (dot > 0.999) {
+            console.log("Recovered from fall");
             setFallenOver(false);
             setIsRecovering(false);
+            updateEntity(id, { currentAction: undefined });
         }
     });
 

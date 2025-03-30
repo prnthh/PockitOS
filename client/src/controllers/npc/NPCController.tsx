@@ -26,7 +26,7 @@ export const NPCUtils = {
     ],
     getDistance: (pos1: Vector3, pos2: Vector3): number => pos1.distanceTo(pos2),
     getBodyPosition: (world: any, handle?: number) =>
-        handle ? new Vector3().copy(world.getRigidBody(handle).translation()) : undefined,
+        world.getRigidBody(handle) ? new Vector3().copy(world.getRigidBody(handle)?.translation()) : undefined,
 };
 
 // Core Controller Component
