@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, createContext, useState, useContext } from 'react';
 import { KeyboardControls, KeyboardControlsEntry } from '@react-three/drei';
 
 enum WalkControls {
@@ -10,7 +10,23 @@ enum WalkControls {
     run = 'run',
 }
 
+export type ControlScheme = 'simple' | 'fps' | 'none';
+
+// Create context for control scheme
+const ControlSchemeContext = createContext<{
+    scheme: ControlScheme;
+    setScheme: (scheme: ControlScheme) => void;
+}>({
+    scheme: 'simple',
+    setScheme: () => { },
+});
+
+// Hook to use the control scheme context
+export const useControlScheme = () => useContext(ControlSchemeContext);
+
 function Controls({ children }: { children: React.ReactNode }) {
+    const [controlScheme, setControlScheme] = useState<ControlScheme>('simple');
+
     const map = useMemo<KeyboardControlsEntry<WalkControls>[]>(() => [
         { name: WalkControls.forward, keys: ['ArrowUp', 'KeyW'] },
         { name: WalkControls.back, keys: ['ArrowDown', 'KeyS'] },
@@ -19,10 +35,46 @@ function Controls({ children }: { children: React.ReactNode }) {
         { name: WalkControls.run, keys: ['Shift'] },
         { name: WalkControls.jump, keys: ['Space'] },
     ], [])
+
     return (
-        <KeyboardControls map={map}>
-            {children}
-        </KeyboardControls>
+        <ControlSchemeContext.Provider value={{
+            scheme: controlScheme,
+            setScheme: setControlScheme
+        }}>
+            <div style={{
+                position: 'absolute',
+                top: '10px',
+                left: '10px',
+                zIndex: 100,
+                background: 'rgba(0,0,0,0.5)',
+                padding: '10px',
+                borderRadius: '5px',
+                color: 'white'
+            }}>
+                <div>Control Scheme:</div>
+                <button
+                    onClick={() => setControlScheme('simple')}
+                    style={{ background: controlScheme === 'simple' ? '#4a4' : '#444', margin: '2px', border: 'none', padding: '5px 10px', borderRadius: '3px', color: 'white' }}
+                >
+                    Simple
+                </button>
+                <button
+                    onClick={() => setControlScheme('fps')}
+                    style={{ background: controlScheme === 'fps' ? '#4a4' : '#444', margin: '2px', border: 'none', padding: '5px 10px', borderRadius: '3px', color: 'white' }}
+                >
+                    FPS
+                </button>
+                <button
+                    onClick={() => setControlScheme('none')}
+                    style={{ background: controlScheme === 'none' ? '#4a4' : '#444', margin: '2px', border: 'none', padding: '5px 10px', borderRadius: '3px', color: 'white' }}
+                >
+                    None
+                </button>
+            </div>
+            <KeyboardControls map={map}>
+                {children}
+            </KeyboardControls>
+        </ControlSchemeContext.Provider>
     );
 }
 
