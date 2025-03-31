@@ -186,13 +186,11 @@ export const CharacterController = () => {
             } else if (scheme === 'fps') {
                 // FPS mode controls (WASD relative to camera direction)
                 if (get().left) {
-                    movement.x = -1;
+                    movement.x = -0.7;
                 }
                 if (get().right) {
-                    movement.x = 1;
+                    movement.x = 0.7;
                 }
-
-                // No need to update rotationTarget here as it's handled by mouse movement
             }
 
             if (movement.x !== 0 || movement.z !== 0) {
@@ -214,7 +212,6 @@ export const CharacterController = () => {
                     vel.x = (movement.x * rightX + movement.z * forwardX) * speed;
                     vel.z = (movement.x * rightZ + movement.z * forwardZ) * speed;
 
-                    // In FPS mode, character always faces the camera direction
                     characterRotationTarget.current = 0;
                 }
 
@@ -264,7 +261,7 @@ export const CharacterController = () => {
             <RigidBody colliders={false} lockRotations ref={rb} userData={{ type: "player" }}>
                 <group ref={container}>
                     <group ref={cameraTarget} position-z={1.5} />
-                    <group ref={cameraPosition} position-y={2} position-z={-3} />
+                    <group ref={cameraPosition} position-y={scheme == 'fps' ? 1.2 : 2} position-z={scheme == 'fps' ? -2 : - 3} />
                     <group ref={character}>
                         <AnimatedModel model="/remilio.glb" animation={animation} height={0.4}
                             animationOverrides={{ run: "anim/run2.fbx", idle: "anim/idle2.fbx", walk: "anim/walk2.fbx", kick: "anim/kick.fbx", punch: "anim/punch.fbx", }}
