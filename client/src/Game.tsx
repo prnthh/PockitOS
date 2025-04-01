@@ -16,20 +16,24 @@ import { CharacterController } from './controllers/CharacterController';
 import { Suspense, useEffect } from 'react';
 import Ped from './rigs/ped';
 import { useShallow } from 'zustand/react/shallow';
+import Vehicle from './rigs/vehicle';
+import { Terrain } from './rigs/terrain';
 
 function Game() {
     return <Canvas className='select-none touch-none' shadows style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}>
         <Perf />
         <Physics debug>
-            <Suspense>
+            {/* <Suspense>
                 <CharacterController key="player" />
-            </Suspense>
+            </Suspense> */}
 
             {/* world: always render ground first, then buildings, then entities */}
             <Building position={[0, 0, 8]} />
             <Lightsource model="lamppost2.glb" position={[-5, 0, 5]} />
             <GameEntities />
             <Ground />
+            {/* <Terrain /> */}
+            <Vehicle position={[0, 0, 0]} rotation={[0, 0, 0]} />
 
             {/* env stuff */}
 
@@ -58,7 +62,7 @@ function GameEntities() {
             id: 'rigga',
             type: 'npc',
             position: [1, 1, 1],
-            currentGoal: 'burgerseek',
+            currentGoal: 'wander',
         });
 
         addEntity({

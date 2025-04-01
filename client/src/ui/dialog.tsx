@@ -1,4 +1,3 @@
-import { useDispatch, useSelector } from "react-redux";
 
 function Dialog() {
     // const targetId = useSelector((state: RootState) => getCameraTarget(state));

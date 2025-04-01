@@ -5,7 +5,7 @@ import { Suspense, useEffect, useRef } from 'react';
 
 function Ground() {
     return (
-        <RigidBody type="fixed" position={[0, 0, 0]} >
+        <RigidBody type="fixed" colliders='trimesh' position={[0, 0, 0]} >
             <Suspense fallback={<>
                 <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
                     <planeGeometry args={[100, 100]} />
