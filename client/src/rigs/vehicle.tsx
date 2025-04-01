@@ -2,7 +2,6 @@ import { Collider } from '@dimforge/rapier3d-compat'
 import { KeyboardControls, OrbitControls, useGLTF, useKeyboardControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { CuboidCollider, Physics, RapierRigidBody, RigidBody, useRapier } from '@react-three/rapier'
-import { useControls } from 'leva'
 import { RefObject, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { WheelInfo, useVehicleController } from '../controllers/useVehicleController'
@@ -71,11 +70,11 @@ const Vehicle = ({ position, rotation }: VehicleProps) => {
 
     const { vehicleController } = useVehicleController(chasisBodyRef, wheelsRef as RefObject<THREE.Object3D[]>, wheels)
 
-    const { accelerateForce, brakeForce, steerAngle } = useControls('rapier-dynamic-raycast-vehicle-controller', {
-        accelerateForce: { value: 1, min: 0, max: 10 },
-        brakeForce: { value: 0.05, min: 0, max: 0.5, step: 0.01 },
-        steerAngle: { value: Math.PI / 24, min: 0, max: Math.PI / 12 },
-    })
+    const { accelerateForce, brakeForce, steerAngle } = {
+        accelerateForce: 1,
+        brakeForce: 0.05,
+        steerAngle: Math.PI / 24,
+    }
 
     const [smoothedCameraPosition] = useState(new THREE.Vector3(0, 100, -300))
     const [smoothedCameraTarget] = useState(new THREE.Vector3())
