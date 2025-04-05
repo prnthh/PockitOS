@@ -1,275 +1,150 @@
 import { useKeyboardControls } from "@react-three/drei";
-import { useFrame, useThree } from "@react-three/fiber";
+import { useFrame } from "@react-three/fiber";
 import { CapsuleCollider, RapierRigidBody, RigidBody } from "@react-three/rapier";
 import { useEffect, useRef, useState } from "react";
-import { MathUtils, Vector3 } from "three";
-import { Group } from 'three';
+import { Vector3, Quaternion } from "three";
 import AnimatedModel from "../gizmos/AnimatedModel";
 import { useControlScheme } from "../gizmos/Controls";
+import useGameStore, { PlayerEntity } from "../store/gameStore";
+import * as THREE from "three";
+import { useShallow } from "zustand/react/shallow";
 
-const normalizeAngle = (angle: number): number => {
-    while (angle > Math.PI) angle -= 2 * Math.PI;
-    while (angle < -Math.PI) angle += 2 * Math.PI;
-    return angle;
-};
+type AnimationState = "idle" | "walk" | "run" | "jump";
 
-const lerpAngle = (start: number, end: number, t: number): number => {
-    start = normalizeAngle(start);
-    end = normalizeAngle(end);
+const WALK_SPEED = 1;
+const RUN_SPEED = 3;
+const ROTATION_SPEED = 0.02;
+const JUMP_FORCE = 10001;
 
-    if (Math.abs(end - start) > Math.PI) {
-        if (end > start) {
-            start += 2 * Math.PI;
-        } else {
-            end += 2 * Math.PI;
-        }
-    }
+export const CharacterController = ({ id }: { id: string }) => {
+    const { updateEntity } = useGameStore();
+    const player = useGameStore(
+        useShallow((state) => state.entities[id] as PlayerEntity)
+    )
 
-    return normalizeAngle(start + (end - start) * t);
-};
-
-type AnimationState = 'idle' | 'walk' | 'run';
-
-const { WALK_SPEED, RUN_SPEED, ROTATION_SPEED } = {
-    WALK_SPEED: 0.6,
-    RUN_SPEED: 2,
-    ROTATION_SPEED: 0.02,
-};
-
-export const CharacterController = () => {
-    const rb = useRef<RapierRigidBody>(null);
-    const container = useRef<Group>(null);
-    const character = useRef<Group>(null);
-    const cameraTarget = useRef<Group>(null);
-    const cameraPosition = useRef<Group>(null);
-    const cameraWorldPosition = useRef(new Vector3());
-    const cameraLookAtWorldPosition = useRef(new Vector3());
-    const cameraLookAt = useRef(new Vector3());
-
+    const rigidBodyRef = useRef<RapierRigidBody>(null);
     const [animation, setAnimation] = useState<AnimationState>("idle");
-    const { scheme, setScheme } = useControlScheme();
-    const { gl, camera } = useThree();
-
-    const characterRotationTarget = useRef<number>(0);
-    const rotationTarget = useRef<number>(0);
+    const { scheme } = useControlScheme();
+    const currentAngle = useRef(0);
     const [, get] = useKeyboardControls();
-    const isClicking = useRef<boolean>(false);
-    const mousePosition = useRef({ x: 0, y: 0 });
-    const isFpsActive = useRef<boolean>(false);
+    const isClicking = useRef(false);
+    const isGrounded = useRef(true); // Track if character is on ground
 
-    // Handle mouse movement for FPS mode
+    // Initialize entity
     useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
-            if (scheme === 'fps' && isFpsActive.current) {
-                // Convert mouse movement to rotation
-                const sensitivity = 0.002;
-                rotationTarget.current -= e.movementX * sensitivity;
+        if (!rigidBodyRef.current) return;
+        updateEntity(id, {
+            rigidbodyhandle: rigidBodyRef.current.handle,
+            cameraTarget: true,
+        });
+    }, [id, updateEntity]);
 
-                // Optional: Vertical look (not affecting character movement)
-                // Implement if needed
-            }
-        };
+    // Mouse/touch controls for simple scheme
+    useEffect(() => {
+        const handleDown = () => (isClicking.current = true);
+        const handleUp = () => (isClicking.current = false);
 
-        const handleEscapeKey = (e: KeyboardEvent) => {
-            if (e.code === 'Escape' && scheme === 'fps' && isFpsActive.current) {
-                document.exitPointerLock();
-                isFpsActive.current = false;
-            }
-        };
-
-        if (scheme === 'fps') {
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('keydown', handleEscapeKey);
+        if (scheme === "simple") {
+            document.addEventListener("mousedown", handleDown);
+            document.addEventListener("mouseup", handleUp);
+            document.addEventListener("touchstart", handleDown);
+            document.addEventListener("touchend", handleUp);
         }
-
         return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('keydown', handleEscapeKey);
+            document.removeEventListener("mousedown", handleDown);
+            document.removeEventListener("mouseup", handleUp);
+            document.removeEventListener("touchstart", handleDown);
+            document.removeEventListener("touchend", handleUp);
         };
     }, [scheme]);
 
-    // Handle pointer lock for FPS mode
-    useEffect(() => {
-        const handleClick = () => {
-            if (scheme === 'fps' && !isFpsActive.current) {
-                gl.domElement.requestPointerLock();
-                isFpsActive.current = true;
-            }
-        };
+    useFrame(({ mouse }) => {
+        if (!rigidBodyRef.current || player.parentEntityId) return;
 
-        const handlePointerLockChange = () => {
-            isFpsActive.current = document.pointerLockElement === gl.domElement;
-        };
+        const vel = rigidBodyRef.current.linvel();
+        const input = get();
+        let rotationDelta = 0;
+        let moveSpeed = 0;
 
-        if (scheme === 'fps') {
-            gl.domElement.addEventListener('click', handleClick);
-            document.addEventListener('pointerlockchange', handlePointerLockChange);
+        // Handle rotation
+        rotationDelta =
+            input.left ? ROTATION_SPEED :
+                input.right ? -ROTATION_SPEED :
+                    scheme === "simple" && isClicking.current && Math.abs(mouse.x) > 0.1 ?
+                        mouse.x * -ROTATION_SPEED * 2 : 0;
+
+        // Handle movement
+        moveSpeed =
+            input.forward ? (input.run ? RUN_SPEED : WALK_SPEED) :
+                input.back ? -(input.run ? RUN_SPEED : WALK_SPEED) :
+                    scheme === "simple" && isClicking.current && Math.abs(mouse.y) > 0.1 ?
+                        Math.abs(mouse.y) > 0.5 ? 1.6 * mouse.y * RUN_SPEED : WALK_SPEED : 0;
+
+        // Handle jump
+        if (input.jump && isGrounded.current) {
+            rigidBodyRef.current.setLinvel({ x: 0, y: 50, z: 0 }, true);
+            isGrounded.current = false;
+            setAnimation("jump");
         }
 
-        return () => {
-            gl.domElement.removeEventListener('click', handleClick);
-            document.removeEventListener('pointerlockchange', handlePointerLockChange);
-        };
-    }, [scheme, gl]);
-
-    useEffect(() => {
-        const onMouseDown = (e: MouseEvent | TouchEvent): void => {
-            if (scheme === 'simple') isClicking.current = true;
-        };
-        const onMouseUp = (e: MouseEvent | TouchEvent): void => {
-            if (scheme === 'simple') isClicking.current = false;
-        };
-
-        if (scheme === 'simple') {
-            document.addEventListener("mousedown", onMouseDown);
-            document.addEventListener("mouseup", onMouseUp);
-            document.addEventListener("touchstart", onMouseDown);
-            document.addEventListener("touchend", onMouseUp);
-        }
-
-        return () => {
-            document.removeEventListener("mousedown", onMouseDown);
-            document.removeEventListener("mouseup", onMouseUp);
-            document.removeEventListener("touchstart", onMouseDown);
-            document.removeEventListener("touchend", onMouseUp);
-        };
-    }, [scheme]);
-
-    useFrame(({ camera, mouse }) => {
-        if (rb.current) {
-            const vel = rb.current.linvel();
-
-            const movement = {
-                x: 0,
-                z: 0,
-            };
-
-            // Skip movement in 'none' mode
-            if (scheme === 'none') {
-                vel.x = 0;
-                vel.z = 0;
-                rb.current.setLinvel(vel, true);
-                return;
-            }
-
-            if (get().forward) {
-                movement.z = 1;
-            }
-            if (get().back) {
-                movement.z = -1;
-            }
-
-            let speed = get().run ? RUN_SPEED : WALK_SPEED;
-
-            if (scheme === 'simple') {
-                // Simple mode controls (original controls)
-                if (isClicking.current) {
-                    if (Math.abs(mouse.x) > 0.1) {
-                        movement.x = -mouse.x;
-                    }
-                    movement.z = mouse.y + 0.4;
-                    if (Math.abs(movement.x) > 0.5 || Math.abs(movement.z) > 0.5) {
-                        speed = RUN_SPEED;
-                    }
-                }
-
-                if (get().left) {
-                    movement.x = 1;
-                }
-                if (get().right) {
-                    movement.x = -1;
-                }
-
-                if (movement.x !== 0) {
-                    rotationTarget.current += ROTATION_SPEED * movement.x;
-                }
-            } else if (scheme === 'fps') {
-                // FPS mode controls (WASD relative to camera direction)
-                if (get().left) {
-                    movement.x = -0.7;
-                }
-                if (get().right) {
-                    movement.x = 0.7;
-                }
-            }
-
-            if (movement.x !== 0 || movement.z !== 0) {
-                if (scheme === 'simple') {
-                    characterRotationTarget.current = Math.atan2(movement.x, movement.z);
-                    vel.x = Math.sin(rotationTarget.current + characterRotationTarget.current) * speed;
-                    vel.z = Math.cos(rotationTarget.current + characterRotationTarget.current) * speed;
-                } else if (scheme === 'fps') {
-                    // For FPS, calculate direction vectors based on camera rotation
-                    const angle = rotationTarget.current;
-
-                    // Calculate forward and right vectors based on camera direction
-                    const forwardX = Math.sin(angle);
-                    const forwardZ = Math.cos(angle);
-                    const rightX = Math.sin(angle - Math.PI / 2);
-                    const rightZ = Math.cos(angle - Math.PI / 2);
-
-                    // Combine movement inputs with direction vectors
-                    vel.x = (movement.x * rightX + movement.z * forwardX) * speed;
-                    vel.z = (movement.x * rightZ + movement.z * forwardZ) * speed;
-
-                    characterRotationTarget.current = 0;
-                }
-
-                if (speed === RUN_SPEED) {
-                    setAnimation("run");
-                } else {
-                    setAnimation("walk");
-                }
-            } else {
-                setAnimation("idle");
-            }
-
-            if (!character.current) return;
-            character.current.rotation.y = lerpAngle(
-                character.current.rotation.y,
-                characterRotationTarget.current,
-                0.1
+        // Apply rotation
+        if (rotationDelta) {
+            currentAngle.current += rotationDelta;
+            rigidBodyRef.current.setRotation(
+                new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), currentAngle.current),
+                true
             );
-
-            rb.current.setLinvel(vel, true);
         }
 
-        // Update camera
-        if (!container.current) return;
-        container.current.rotation.y = MathUtils.lerp(
-            container.current.rotation.y,
-            rotationTarget.current,
-            0.1
-        );
+        // Apply movement (only horizontal)
+        const forward = new Vector3(0, 0, 1).applyQuaternion(rigidBodyRef.current.rotation());
+        const targetVel = new Vector3(forward.x * moveSpeed, 0, forward.z * moveSpeed);
 
-        if (scheme !== 'none') {
-            if (cameraPosition.current) {
-                cameraPosition.current.getWorldPosition(cameraWorldPosition.current);
-                camera.position.lerp(cameraWorldPosition.current, 0.1);
-            }
+        // Only update horizontal velocity, preserve vertical velocity during jump
+        const newVel = {
+            x: THREE.MathUtils.lerp(vel.x, targetVel.x, 0.2),
+            y: vel.y, // Preserve the y velocity
+            z: THREE.MathUtils.lerp(vel.z, targetVel.z, 0.2)
+        };
 
-            if (cameraTarget.current) {
-                cameraTarget.current.getWorldPosition(cameraLookAtWorldPosition.current);
-                cameraLookAt.current.lerp(cameraLookAtWorldPosition.current, 0.1);
-                camera.lookAt(cameraLookAt.current);
-            }
+        // Update animation
+        if (!isGrounded.current) {
+            // Keep jump animation while in air
+        } else if (moveSpeed !== 0) {
+            setAnimation(Math.abs(moveSpeed) >= RUN_SPEED ? "run" : "walk");
+        } else {
+            setAnimation("idle");
         }
+
+        rigidBodyRef.current.setLinvel(newVel, true);
+
+        // Improved ground check
+        isGrounded.current = Math.abs(vel.y) < 0.1;
     });
 
+
     return (
-        <>
-            <RigidBody colliders={false} lockRotations ref={rb} userData={{ type: "player" }}>
-                <group ref={container}>
-                    <group ref={cameraTarget} position-z={1.5} />
-                    <group ref={cameraPosition} position-y={scheme == 'fps' ? 1.2 : 2} position-z={scheme == 'fps' ? -2 : - 3} />
-                    <group ref={character}>
-                        <AnimatedModel model="/remilio.glb" animation={animation} height={0.4}
-                            animationOverrides={{ run: "anim/run2.fbx", idle: "anim/idle2.fbx", walk: "anim/walk2.fbx", kick: "anim/kick.fbx", punch: "anim/punch.fbx", }}
-                        />
-                    </group>
-                </group>
-                <CapsuleCollider args={[0.3, 0.15]} />
-            </RigidBody>
-        </>
+        <RigidBody
+            ref={rigidBodyRef}
+            colliders={false}
+            enabledRotations={[false, true, false]}
+            angularDamping={5.0}
+            userData={{ type: "player" }}
+            position={[0, 2, 0]}
+            mass={0.01}
+        >
+            <AnimatedModel
+                model="/remilio.glb"
+                animation={animation}
+                height={0.4}
+                animationOverrides={{
+                    run: "anim/run2.fbx",
+                    idle: "anim/idle2.fbx",
+                    walk: "anim/walk2.fbx",
+                    jump: "anim/jump.fbx", // Add jump animation if available
+                }}
+            />
+            <CapsuleCollider args={[0.3, 0.15]} />
+        </RigidBody>
     );
 };

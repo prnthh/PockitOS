@@ -1,16 +1,30 @@
 import React, { useMemo, createContext, useState, useContext } from 'react';
 import { KeyboardControls, KeyboardControlsEntry } from '@react-three/drei';
 
-enum WalkControls {
+export enum WalkControls {
     forward = 'forward',
     back = 'back',
     left = 'left',
     right = 'right',
     jump = 'jump',
     run = 'run',
+    use = 'use',
+    altUse = 'altUse',
 }
 
-enum DriveControls {
+const walkControlKeys = [
+    { name: WalkControls.forward, keys: ['ArrowUp', 'KeyW'] },
+    { name: WalkControls.back, keys: ['ArrowDown', 'KeyS'] },
+    { name: WalkControls.left, keys: ['ArrowLeft', 'KeyA'] },
+    { name: WalkControls.right, keys: ['ArrowRight', 'KeyD'] },
+    { name: WalkControls.run, keys: ['Shift'] },
+    { name: WalkControls.jump, keys: ['Space'] },
+    { name: WalkControls.use, keys: ['KeyE'] },
+    { name: WalkControls.altUse, keys: ['KeyQ'] },
+    { name: WalkControls.altUse, keys: ['KeyQ'] },
+]
+
+export enum DriveControls {
     forward = 'forward',
     back = 'back',
     left = 'left',
@@ -19,7 +33,17 @@ enum DriveControls {
     reset = 'reset',
 }
 
-export type ControlScheme = 'simple' | 'fps' | 'none';
+const driveControlKeys = [
+    { name: DriveControls.forward, keys: ['ArrowUp', 'KeyW'] },
+    { name: DriveControls.back, keys: ['ArrowDown', 'KeyS'] },
+    { name: DriveControls.left, keys: ['ArrowLeft', 'KeyA'] },
+    { name: DriveControls.right, keys: ['ArrowRight', 'KeyD'] },
+    { name: DriveControls.brake, keys: ['Space'] },
+    { name: DriveControls.reset, keys: ['KeyR'] },
+]
+
+export type ControlScheme = 'simple' | 'fps' | 'drive' | 'none'; // updated
+export type ControlName = WalkControls | DriveControls;
 
 // Create context for control scheme
 const ControlSchemeContext = createContext<{
@@ -35,20 +59,14 @@ export const useControlScheme = () => useContext(ControlSchemeContext);
 
 function Controls({ children }: { children: React.ReactNode }) {
     const [controlScheme, setControlScheme] = useState<ControlScheme>('simple');
-
-    const map = useMemo<KeyboardControlsEntry<DriveControls>[]>(() => [
-        // { name: WalkControls.forward, keys: ['ArrowUp', 'KeyW'] },
-        // { name: WalkControls.back, keys: ['ArrowDown', 'KeyS'] },
-        // { name: WalkControls.left, keys: ['ArrowLeft', 'KeyA'] },
-        // { name: WalkControls.right, keys: ['ArrowRight', 'KeyD'] },
-        // { name: WalkControls.run, keys: ['Shift'] },
-        // { name: WalkControls.jump, keys: ['Space'] },
-        { name: DriveControls.forward, keys: ['ArrowUp', 'KeyW'] },
-        { name: DriveControls.back, keys: ['ArrowDown', 'KeyS'] },
-        { name: DriveControls.left, keys: ['ArrowLeft', 'KeyA'] },
-        { name: DriveControls.right, keys: ['ArrowRight', 'KeyD'] },
-        { name: DriveControls.brake, keys: ['Space'] },
-        { name: DriveControls.reset, keys: ['KeyR'] },
+    const map = useMemo<KeyboardControlsEntry<ControlName>[]>(() => [
+        ...walkControlKeys
+        // { name: DriveControls.forward, keys: ['ArrowUp', 'KeyW'] },
+        // { name: DriveControls.back, keys: ['ArrowDown', 'KeyS'] },
+        // { name: DriveControls.left, keys: ['ArrowLeft', 'KeyA'] },
+        // { name: DriveControls.right, keys: ['ArrowRight', 'KeyD'] },
+        // { name: DriveControls.brake, keys: ['Space'] },
+        // { name: DriveControls.reset, keys: ['KeyR'] },
     ], [])
 
     return (
@@ -78,6 +96,12 @@ function Controls({ children }: { children: React.ReactNode }) {
                     style={{ background: controlScheme === 'fps' ? '#4a4' : '#444', margin: '2px', border: 'none', padding: '5px 10px', borderRadius: '3px', color: 'white' }}
                 >
                     FPS
+                </button>
+                <button
+                    onClick={() => setControlScheme('drive')}
+                    style={{ background: controlScheme === 'drive' ? '#4a4' : '#444', margin: '2px', border: 'none', padding: '5px 10px', borderRadius: '3px', color: 'white' }}
+                >
+                    Drive
                 </button>
                 <button
                     onClick={() => setControlScheme('none')}

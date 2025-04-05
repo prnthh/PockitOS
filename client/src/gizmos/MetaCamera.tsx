@@ -1,51 +1,56 @@
-import { useEffect, useRef } from "react"
-import { OrbitControls, PerspectiveCamera } from "@react-three/drei"
-import { PerspectiveCamera as ThreePerspectiveCamera, Vector3 } from "three"
-import { useFrame } from "@react-three/fiber"
+import { useRef } from "react";
+import { PerspectiveCamera } from "@react-three/drei";
+import { PerspectiveCamera as ThreePerspectiveCamera, Vector3, Quaternion } from "three";
+import { useFrame } from "@react-three/fiber";
+import { useControlScheme } from "./Controls";
+import useGameStore from "../store/gameStore";
+import { useShallow } from "zustand/react/shallow";
+import { useRapier } from "@react-three/rapier";
+
+const vehicleSpawn = new Vector3(-7, 2, -130);
 
 const MetaCamera = () => {
-    const camera = useRef<ThreePerspectiveCamera>(null)
-    // const controls = useRef<any>(null)
-    const cameraPosition = useRef(new Vector3())
-    const targetPosition = useRef(new Vector3())
-
-
-    // const [cameraTarget] = useEntities(cameraQuery)
+    const camera = useRef<ThreePerspectiveCamera>(null);
+    const targetLookAt = useRef(new Vector3(0, 0, -1));
+    const { scheme } = useControlScheme();
+    const cameraTargets = useGameStore(
+        useShallow((state) =>
+            Object.values(state.entities).filter((entity) => entity.cameraTarget)
+        )
+    );
+    const { world } = useRapier();
 
     useFrame(() => {
+        if (!camera.current) return;
 
-        // get the position of person from the rigidbody
-        const pos = undefined // new Vector3()
-        if (!pos) return;
+        if (cameraTargets.length > 0) {
+            const target = cameraTargets[0];
+            if (!target.rigidbodyhandle) return;
 
+            const rb = world.getRigidBody(target.rigidbodyhandle);
+            const pos = rb.translation();
+            const quat = rb.rotation();
 
-        // Update target position from entity position
-        // targetPosition.current.set(
-        //     pos.x,
-        //     pos.y + 0.5,
-        //     pos.z
-        // );
+            const targetPos = new Vector3(pos.x, pos.y, pos.z);
+            const forward = new Vector3(0, 0, 1).applyQuaternion(quat); // Local Z is forward
 
-        // // Calculate desired camera position (in front of target)
-        // const desiredPosition = new Vector3(
-        //     pos.x,
-        //     pos.y + 0.5,
-        //     pos.z - 2
-        // );
+            const offsetDistance = 5;
+            const heightOffset = 2;
+            const offset = forward.clone().multiplyScalar(-offsetDistance);
+            offset.y += heightOffset;
 
-        // // Smoothly interpolate camera position
-        // camera.current?.position.lerp(desiredPosition, 0.01);
+            const desiredCameraPos = targetPos.clone().add(offset);
 
-        // // Smoothly interpolate camera lookAt
-        // camera.current?.lookAt(
-        //     targetPosition.current.lerp(targetPosition.current, 0.01)
-        // );
+            // Lerp position smoothly
+            camera.current.position.lerp(desiredCameraPos, 0.1);
+
+            // Lerp the look target smoothly
+            targetLookAt.current.lerp(targetPos, 0.1);
+            camera.current.lookAt(targetLookAt.current);
+        }
     });
 
-    return <>
-        <PerspectiveCamera ref={camera} makeDefault position={[0, 10, 10]} />
-        {/* <OrbitControls /> */}
-    </>
-}
+    return <PerspectiveCamera ref={camera} makeDefault position={[0, 10, 10]} />;
+};
 
-export default MetaCamera
+export default MetaCamera;

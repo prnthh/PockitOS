@@ -5,6 +5,9 @@ import { CuboidCollider, Physics, RapierRigidBody, RigidBody, useRapier } from '
 import { RefObject, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { WheelInfo, useVehicleController } from '../controllers/useVehicleController'
+import { useControlScheme } from '../gizmos/Controls' // added
+import useGameStore, { VehicleEntity } from '../store/gameStore'
+import { useShallow } from 'zustand/react/shallow'
 
 const spawn = {
     position: [-7, 2, -130] as THREE.Vector3Tuple,
@@ -59,10 +62,16 @@ type VehicleProps = {
     rotation: THREE.Vector3Tuple
 }
 
-const Vehicle = ({ position, rotation }: VehicleProps) => {
+const Vehicle = ({ id }: { id: string }) => {
+    const { updateEntity } = useGameStore();
+    const vehicle = useGameStore(
+        useShallow((state) => state.entities[id] as VehicleEntity)
+    )
+
     const { world, rapier } = useRapier()
     const threeControls = useThree((s) => s.controls)
     const [, getKeyboardControls] = useKeyboardControls<keyof KeyControls>()
+    const { scheme } = useControlScheme(); // added
 
     const chasisMeshRef = useRef<THREE.Mesh>(null!)
     const chasisBodyRef = useRef<RapierRigidBody>(null!)
@@ -76,12 +85,13 @@ const Vehicle = ({ position, rotation }: VehicleProps) => {
         steerAngle: Math.PI / 24,
     }
 
-    const [smoothedCameraPosition] = useState(new THREE.Vector3(0, 100, -300))
-    const [smoothedCameraTarget] = useState(new THREE.Vector3())
+    // const [smoothedCameraPosition] = useState(new THREE.Vector3(0, 100, -300))
+    // const [smoothedCameraTarget] = useState(new THREE.Vector3())
 
     const ground = useRef<Collider | null>(null)
 
     useFrame((state, delta) => {
+        if (scheme !== "drive") return; // vehicle active only in drive mode
         if (!chasisMeshRef.current || !vehicleController.current || !!threeControls) return
 
         const t = 1.0 - Math.pow(0.01, delta)
@@ -155,71 +165,72 @@ const Vehicle = ({ position, rotation }: VehicleProps) => {
         /* camera */
 
         // camera position
-        const cameraPosition = _cameraPosition
+        // const cameraPosition = _cameraPosition
 
-        if (!!ground.current) {
-            // camera behind chassis
-            cameraPosition.copy(cameraOffset)
-            const bodyWorldMatrix = chasisMeshRef.current.matrixWorld
-            cameraPosition.applyMatrix4(bodyWorldMatrix)
-        } else {
-            // camera behind velocity
-            const velocity = chassisRigidBody.linvel()
-            cameraPosition.copy(velocity)
-            cameraPosition.normalize()
-            cameraPosition.multiplyScalar(-10)
-            cameraPosition.add(chassisRigidBody.translation())
-        }
+        // if (!!ground.current) {
+        //     // camera behind chassis
+        //     cameraPosition.copy(cameraOffset)
+        //     const bodyWorldMatrix = chasisMeshRef.current.matrixWorld
+        //     cameraPosition.applyMatrix4(bodyWorldMatrix)
+        // } else {
+        //     // camera behind velocity
+        //     const velocity = chassisRigidBody.linvel()
+        //     cameraPosition.copy(velocity)
+        //     cameraPosition.normalize()
+        //     cameraPosition.multiplyScalar(-10)
+        //     cameraPosition.add(chassisRigidBody.translation())
+        // }
 
-        cameraPosition.y = Math.max(cameraPosition.y, (vehicleController.current?.chassis().translation().y ?? 0) + 1)
+        // cameraPosition.y = Math.max(cameraPosition.y, (vehicleController.current?.chassis().translation().y ?? 0) + 1)
 
-        smoothedCameraPosition.lerp(cameraPosition, t)
-        state.camera.position.copy(smoothedCameraPosition)
+        // smoothedCameraPosition.lerp(cameraPosition, t)
+        // state.camera.position.copy(smoothedCameraPosition)
 
-        // camera target
-        const bodyPosition = chasisMeshRef.current.getWorldPosition(_bodyPosition)
-        const cameraTarget = _cameraTarget
+        // // camera target
+        // const bodyPosition = chasisMeshRef.current.getWorldPosition(_bodyPosition)
+        // const cameraTarget = _cameraTarget
 
-        cameraTarget.copy(bodyPosition)
-        cameraTarget.add(cameraTargetOffset)
-        smoothedCameraTarget.lerp(cameraTarget, t)
+        // cameraTarget.copy(bodyPosition)
+        // cameraTarget.add(cameraTargetOffset)
+        // smoothedCameraTarget.lerp(cameraTarget, t)
 
-        state.camera.lookAt(smoothedCameraTarget)
+        // state.camera.lookAt(smoothedCameraTarget)
     })
 
     return (
         <>
-            <RigidBody
-                position={position}
-                rotation={rotation}
-                canSleep={false}
-                ref={chasisBodyRef}
-                colliders={false}
-                type="dynamic"
-            >
-                <CuboidCollider args={[0.8, 0.2, 0.4]} />
+            <group onClick={(e) => { console.log(e); e.stopPropagation(); }}>
+                <RigidBody
+                    position={vehicle.position}
+                    // canSleep={false}
+                    ref={chasisBodyRef}
+                    colliders={false}
+                    type="dynamic"
+                >
+                    <CuboidCollider args={[0.8, 0.2, 0.4]} />
 
-                {/* chassis */}
-                <mesh ref={chasisMeshRef}>
-                    <boxGeometry args={[1.6, 0.4, 0.8]} />
-                </mesh>
+                    {/* chassis */}
+                    <mesh ref={chasisMeshRef} castShadow receiveShadow>
+                        <boxGeometry args={[1.6, 0.4, 0.8]} />
+                    </mesh>
 
-                {/* wheels */}
-                {wheels.map((wheel, index) => (
-                    <group key={index} ref={(ref) => ((wheelsRef.current as any)[index] = ref)} position={wheel.position}>
-                        <group rotation-x={-Math.PI / 2}>
-                            <mesh>
-                                <cylinderGeometry args={[0.15, 0.15, 0.25, 16]} />
-                                <meshStandardMaterial color="#222" />
-                            </mesh>
-                            <mesh scale={1.01}>
-                                <cylinderGeometry args={[0.15, 0.15, 0.25, 6]} />
-                                <meshStandardMaterial color="#fff" wireframe />
-                            </mesh>
+                    {/* wheels */}
+                    {wheels.map((wheel, index) => (
+                        <group key={index} ref={(ref) => ((wheelsRef.current as any)[index] = ref)} position={wheel.position}>
+                            <group rotation-x={-Math.PI / 2}>
+                                <mesh>
+                                    <cylinderGeometry args={[0.15, 0.15, 0.25, 16]} />
+                                    <meshStandardMaterial color="#222" />
+                                </mesh>
+                                <mesh scale={1.01}>
+                                    <cylinderGeometry args={[0.15, 0.15, 0.25, 6]} />
+                                    <meshStandardMaterial color="#fff" wireframe />
+                                </mesh>
+                            </group>
                         </group>
-                    </group>
-                ))}
-            </RigidBody>
+                    ))}
+                </RigidBody>
+            </group>
         </>
     )
 }

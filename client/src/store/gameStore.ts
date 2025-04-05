@@ -10,11 +10,13 @@ interface Cutscene {
 }
 
 // Base entity interface
-interface BaseEntity {
+export interface BaseEntity {
   id: string;
   type: string;
   position: Position;
   rigidbodyhandle?: number; // Consider replacing with a more specific type
+  cameraTarget?: boolean;
+  parentEntityId?: string;
 }
 
 // Specific entity types
@@ -25,13 +27,22 @@ export interface NpcEntity extends BaseEntity {
   inventory?: ThingEntity[];
 }
 
+export interface VehicleEntity extends BaseEntity {
+  type: 'vehicle';
+}
+
 export interface ThingEntity extends BaseEntity {
   type: 'thing';
   name: string;
 }
 
+export interface PlayerEntity extends BaseEntity {
+  type: 'player';
+  inventory: ThingEntity[];
+}
+
 // Union type for all entity types
-type Entity = NpcEntity | ThingEntity;
+export type Entity = NpcEntity | ThingEntity | PlayerEntity | VehicleEntity;
 
 // Store state type
 interface GameState {
@@ -56,6 +67,7 @@ interface GameState {
     type: string, 
     filterFn?: (entity: T) => boolean
   ) => T | null;
+  getCameraTargets: () => Entity[];
 }
 
 // Utility function to calculate 3D distance between two positions [x, y, z]
@@ -171,6 +183,8 @@ const useGameStore = create<GameState>((set, get) => ({
       { entity: null as T | null, dist: Infinity }
     ).entity;
   },
+  getCameraTargets: () =>
+    Object.values(get().entities).filter((entity) => entity.cameraTarget) as Entity[],
 }));
 
 export default useGameStore;

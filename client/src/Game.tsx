@@ -23,9 +23,6 @@ function Game() {
     return <Canvas className='select-none touch-none' shadows style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh' }}>
         <Perf />
         <Physics debug>
-            {/* <Suspense>
-                <CharacterController key="player" />
-            </Suspense> */}
 
             {/* world: always render ground first, then buildings, then entities */}
             <Building position={[0, 0, 8]} />
@@ -33,13 +30,12 @@ function Game() {
             <GameEntities />
             <Ground />
             {/* <Terrain /> */}
-            <Vehicle position={[0, 0, 0]} rotation={[0, 0, 0]} />
 
             {/* env stuff */}
+            <MetaCamera />
 
         </Physics>
 
-        <MetaCamera />
         <WorldLighting />
     </Canvas>
 }
@@ -57,12 +53,33 @@ function GameEntities() {
             .filter(id => state.entities[id]?.type === 'thing'))
     )
 
+    const players = useGameStore(
+        useShallow((state) => Object.keys(state.entities)
+            .filter(id => state.entities[id]?.type === 'player'))
+    )
+
+    const vehicles = useGameStore(
+        useShallow((state) => Object.keys(state.entities)
+            .filter(id => state.entities[id]?.type === 'vehicle'))
+    )
+
+
     useEffect(() => {
+
+        addEntity({
+            id: 'player',
+            type: 'player',
+            position: [0, 2, 0],
+            cameraTarget: true,
+            inventory: [],
+        });
+
         addEntity({
             id: 'rigga',
             type: 'npc',
             position: [1, 1, 1],
             currentGoal: 'wander',
+            cameraTarget: true,
         });
 
         addEntity({
@@ -70,6 +87,12 @@ function GameEntities() {
             type: 'npc',
             position: [-1, 1, 1],
             currentGoal: 'wander',
+        });
+
+        addEntity({
+            id: 'mycar',
+            type: 'vehicle',
+            position: [0, 1, 0],
         });
 
         const interval = setTimeout(() => {
@@ -90,15 +113,20 @@ function GameEntities() {
 
     useEffect(() => {
         console.log('GameEntities', npcs, things)
-    }
-        , [npcs, things]);
+    }, [npcs, things]);
 
     return <>
+        {Object.values(players).map((entity) => {
+            return <Suspense key={entity}><CharacterController id={entity} /></Suspense>
+        })}
         {Object.values(npcs).map((entity) => {
             return <Suspense key={entity}><Ped id={entity} /></Suspense>
         })}
         {Object.values(things).map((entity) => {
             return <Suspense key={entity}><Thing id={entity} /></Suspense>
+        })}
+        {Object.values(vehicles).map((entity) => {
+            return <Suspense key={entity}><Vehicle id={entity} /></Suspense>
         })}
     </>
 }
