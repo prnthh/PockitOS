@@ -79,7 +79,6 @@ function GameEntities() {
             type: 'npc',
             position: [1, 1, 1],
             currentGoal: 'wander',
-            cameraTarget: true,
         });
 
         addEntity({

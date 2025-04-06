@@ -60,13 +60,8 @@ export const useControlScheme = () => useContext(ControlSchemeContext);
 function Controls({ children }: { children: React.ReactNode }) {
     const [controlScheme, setControlScheme] = useState<ControlScheme>('simple');
     const map = useMemo<KeyboardControlsEntry<ControlName>[]>(() => [
-        ...walkControlKeys
-        // { name: DriveControls.forward, keys: ['ArrowUp', 'KeyW'] },
-        // { name: DriveControls.back, keys: ['ArrowDown', 'KeyS'] },
-        // { name: DriveControls.left, keys: ['ArrowLeft', 'KeyA'] },
-        // { name: DriveControls.right, keys: ['ArrowRight', 'KeyD'] },
-        // { name: DriveControls.brake, keys: ['Space'] },
-        // { name: DriveControls.reset, keys: ['KeyR'] },
+        ...(walkControlKeys),
+        ...(driveControlKeys)
     ], [])
 
     return (

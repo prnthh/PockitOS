@@ -2,7 +2,7 @@ import { Collider } from '@dimforge/rapier3d-compat'
 import { KeyboardControls, OrbitControls, useGLTF, useKeyboardControls } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { CuboidCollider, Physics, RapierRigidBody, RigidBody, useRapier } from '@react-three/rapier'
-import { RefObject, useRef, useState } from 'react'
+import { RefObject, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { WheelInfo, useVehicleController } from '../controllers/useVehicleController'
 import { useControlScheme } from '../gizmos/Controls' // added
@@ -71,7 +71,7 @@ const Vehicle = ({ id }: { id: string }) => {
     const { world, rapier } = useRapier()
     const threeControls = useThree((s) => s.controls)
     const [, getKeyboardControls] = useKeyboardControls<keyof KeyControls>()
-    const { scheme } = useControlScheme(); // added
+    const { scheme, setScheme } = useControlScheme(); // added
 
     const chasisMeshRef = useRef<THREE.Mesh>(null!)
     const chasisBodyRef = useRef<RapierRigidBody>(null!)
@@ -82,8 +82,16 @@ const Vehicle = ({ id }: { id: string }) => {
     const { accelerateForce, brakeForce, steerAngle } = {
         accelerateForce: 1,
         brakeForce: 0.05,
-        steerAngle: Math.PI / 24,
+        steerAngle: Math.PI / 12,
     }
+
+    useEffect(() => {
+        if (!chasisMeshRef || !chasisBodyRef.current) return;
+
+        updateEntity(id, {
+            rigidbodyhandle: chasisBodyRef.current.handle,
+        });
+    }, [chasisBodyRef.current]);
 
     // const [smoothedCameraPosition] = useState(new THREE.Vector3(0, 100, -300))
     // const [smoothedCameraTarget] = useState(new THREE.Vector3())
@@ -199,10 +207,15 @@ const Vehicle = ({ id }: { id: string }) => {
 
     return (
         <>
-            <group onClick={(e) => { console.log(e); e.stopPropagation(); }}>
+            <group onClick={(e) => {
+                console.log(id); e.stopPropagation();
+                updateEntity(id, { cameraTarget: true })
+                updateEntity('player', { cameraTarget: false })
+                setScheme('drive')
+            }}>
                 <RigidBody
                     position={vehicle.position}
-                    // canSleep={false}
+                    canSleep={false}
                     ref={chasisBodyRef}
                     colliders={false}
                     type="dynamic"
