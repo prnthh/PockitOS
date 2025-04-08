@@ -33,6 +33,7 @@ export const useVehicleController = (
         if (!chassis || !wheels) return
 
         const vehicle = world.createVehicleController(chassis)
+        vehicle.setIndexForwardAxis = 2
 
         const suspensionDirection = new THREE.Vector3(0, -1, 0)
 

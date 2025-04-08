@@ -33,34 +33,27 @@ type KeyControls = {
 }
 
 const wheelInfo: Omit<WheelInfo, 'position'> = {
-    axleCs: new THREE.Vector3(0, 0, -1),
+    axleCs: new THREE.Vector3(1, 0, 0),
     suspensionRestLength: 0.125,
     suspensionStiffness: 24,
     maxSuspensionTravel: 1,
     radius: 0.15,
 }
 
+const carDimensions = [0.8, 0.4, 1.6] as const
+const inset = 0.15
+const wheelSize = [0.15, 0.25] as const
+
 const wheels: WheelInfo[] = [
     // front
-    { position: new THREE.Vector3(-0.65, -0.15, -0.45), ...wheelInfo },
-    { position: new THREE.Vector3(-0.65, -0.15, 0.45), ...wheelInfo },
+    { position: new THREE.Vector3((carDimensions[0] / 2), -(carDimensions[1] / 2) + inset, (carDimensions[2] / 2) - inset), ...wheelInfo },
+    { position: new THREE.Vector3(-(carDimensions[0] / 2), -(carDimensions[1] / 2) + inset, (carDimensions[2] / 2) - inset), ...wheelInfo },
     // rear
-    { position: new THREE.Vector3(0.65, -0.15, -0.45), ...wheelInfo },
-    { position: new THREE.Vector3(0.65, -0.15, 0.45), ...wheelInfo },
+    { position: new THREE.Vector3(-(carDimensions[0] / 2), -(carDimensions[1] / 2) + inset, -(carDimensions[2] / 2) + inset), ...wheelInfo },
+    { position: new THREE.Vector3((carDimensions[0] / 2), -(carDimensions[1] / 2) + inset, -(carDimensions[2] / 2) + inset), ...wheelInfo },
 ]
 
-const cameraOffset = new THREE.Vector3(7, 3, 0)
-const cameraTargetOffset = new THREE.Vector3(0, 1.5, 0)
-
-const _bodyPosition = new THREE.Vector3()
 const _airControlAngVel = new THREE.Vector3()
-const _cameraPosition = new THREE.Vector3()
-const _cameraTarget = new THREE.Vector3()
-
-type VehicleProps = {
-    position: THREE.Vector3Tuple
-    rotation: THREE.Vector3Tuple
-}
 
 const Vehicle = ({ id }: { id: string }) => {
     const { updateEntity } = useGameStore();
@@ -92,9 +85,6 @@ const Vehicle = ({ id }: { id: string }) => {
             rigidbodyhandle: chasisBodyRef.current.handle,
         });
     }, [chasisBodyRef.current]);
-
-    // const [smoothedCameraPosition] = useState(new THREE.Vector3(0, 100, -300))
-    // const [smoothedCameraTarget] = useState(new THREE.Vector3())
 
     const ground = useRef<Collider | null>(null)
 
@@ -131,8 +121,8 @@ const Vehicle = ({ id }: { id: string }) => {
 
         const engineForce = Number(controls.forward) * accelerateForce - Number(controls.back)
 
-        controller.setWheelEngineForce(0, engineForce)
-        controller.setWheelEngineForce(1, engineForce)
+        controller.setWheelEngineForce(2, -engineForce)
+        controller.setWheelEngineForce(3, -engineForce)
 
         const wheelBrake = Number(controls.brake) * brakeForce
         controller.setWheelBrake(0, wheelBrake)
@@ -169,40 +159,6 @@ const Vehicle = ({ id }: { id: string }) => {
             chassis.setLinvel(new rapier.Vector3(0, 0, 0), true)
             chassis.setAngvel(new rapier.Vector3(0, 0, 0), true)
         }
-
-        /* camera */
-
-        // camera position
-        // const cameraPosition = _cameraPosition
-
-        // if (!!ground.current) {
-        //     // camera behind chassis
-        //     cameraPosition.copy(cameraOffset)
-        //     const bodyWorldMatrix = chasisMeshRef.current.matrixWorld
-        //     cameraPosition.applyMatrix4(bodyWorldMatrix)
-        // } else {
-        //     // camera behind velocity
-        //     const velocity = chassisRigidBody.linvel()
-        //     cameraPosition.copy(velocity)
-        //     cameraPosition.normalize()
-        //     cameraPosition.multiplyScalar(-10)
-        //     cameraPosition.add(chassisRigidBody.translation())
-        // }
-
-        // cameraPosition.y = Math.max(cameraPosition.y, (vehicleController.current?.chassis().translation().y ?? 0) + 1)
-
-        // smoothedCameraPosition.lerp(cameraPosition, t)
-        // state.camera.position.copy(smoothedCameraPosition)
-
-        // // camera target
-        // const bodyPosition = chasisMeshRef.current.getWorldPosition(_bodyPosition)
-        // const cameraTarget = _cameraTarget
-
-        // cameraTarget.copy(bodyPosition)
-        // cameraTarget.add(cameraTargetOffset)
-        // smoothedCameraTarget.lerp(cameraTarget, t)
-
-        // state.camera.lookAt(smoothedCameraTarget)
     })
 
     return (
@@ -220,23 +176,23 @@ const Vehicle = ({ id }: { id: string }) => {
                     colliders={false}
                     type="dynamic"
                 >
-                    <CuboidCollider args={[0.8, 0.2, 0.4]} />
+                    <CuboidCollider args={[carDimensions[0] / 2, carDimensions[1] / 2, carDimensions[2] / 2]} />
 
                     {/* chassis */}
                     <mesh ref={chasisMeshRef} castShadow receiveShadow>
-                        <boxGeometry args={[1.6, 0.4, 0.8]} />
+                        <boxGeometry args={[carDimensions[0], carDimensions[1], carDimensions[2]]} />
                     </mesh>
 
                     {/* wheels */}
                     {wheels.map((wheel, index) => (
                         <group key={index} ref={(ref) => ((wheelsRef.current as any)[index] = ref)} position={wheel.position}>
-                            <group rotation-x={-Math.PI / 2}>
+                            <group rotation-z={-Math.PI / 2}>
                                 <mesh>
-                                    <cylinderGeometry args={[0.15, 0.15, 0.25, 16]} />
+                                    <cylinderGeometry args={[wheelSize[0], wheelSize[0], wheelSize[1], 6]} />
                                     <meshStandardMaterial color="#222" />
                                 </mesh>
                                 <mesh scale={1.01}>
-                                    <cylinderGeometry args={[0.15, 0.15, 0.25, 6]} />
+                                    <cylinderGeometry args={[wheelSize[0], wheelSize[0], wheelSize[1], 6]} />
                                     <meshStandardMaterial color="#fff" wireframe />
                                 </mesh>
                             </group>
