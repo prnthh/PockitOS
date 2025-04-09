@@ -91,7 +91,7 @@ function GameEntities() {
         addEntity({
             id: 'mycar',
             type: 'vehicle',
-            position: [0, 1, 0],
+            position: [10, 1, 0],
         });
 
         const interval = setTimeout(() => {

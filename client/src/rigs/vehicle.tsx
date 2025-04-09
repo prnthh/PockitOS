@@ -34,8 +34,8 @@ type KeyControls = {
 
 const wheelInfo: Omit<WheelInfo, 'position'> = {
     axleCs: new THREE.Vector3(1, 0, 0),
-    suspensionRestLength: 0.125,
-    suspensionStiffness: 24,
+    suspensionRestLength: 0.25,
+    suspensionStiffness: 48,
     maxSuspensionTravel: 1,
     radius: 0.15,
 }
