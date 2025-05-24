@@ -46,7 +46,7 @@ export const CharacterController = () => {
     const [, get] = useKeyboardControls();
     const isPointerLocked = useRef<boolean>(false);
     const lastMouseX = useRef<number | null>(null);
-    const [animation, setAnimation] = useState<"idle" | "walk" | "walkright" | "run" | "jump">("idle");
+    const [animation, setAnimation] = useState<"idle" | "walk" | "run" | "jump">("idle");
     const [shoulderCamMode, setShoulderCamMode] = useState(false);
 
     const velocityRef = useRef<Vector3>(new Vector3(0, 0, 0));
@@ -134,7 +134,7 @@ export const CharacterController = () => {
                 // Apply movement with current Y velocity preserved
                 velocityRef.current.set(dir.x * speed, velocityRef.current.y, dir.z * speed);
                 isVelocityRefDirty.current = true;
-                setAnimation(speed === RUN_SPEED ? "run" : moveX !== 0 ? "walkright" : "walk");
+                setAnimation(speed === RUN_SPEED ? "run" : moveX !== 0 ? "walk" : "walk");
             } else {
                 setAnimation("idle");
             }

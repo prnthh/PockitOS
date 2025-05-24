@@ -5,8 +5,14 @@ import * as THREE from "three";
 import { SkeletonUtils } from "three-stdlib";
 import useAnimationState from "./useAnimationState";
 
-const AnimatedModel = ({ model, animation = "idle", onClick, height = 1, animationOverrides, position = [0, 0, 0], debug = false, ...props }: {
-    model: string; animation?: string, height?: number, animationOverrides?: { [key: string]: string }, position?: [number, number, number], debug: boolean, onClick?: () => void;
+const AnimatedModel = ({ model, animation = "idle", onClick, height = 1, animationOverrides, position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], debug = false, retargetOptions, ...props }: {
+    model: string; animation?: string, height?: number,
+    animationOverrides?: { [key: string]: string },
+    position?: [number, number, number],
+    scale?: number,
+    rotation?: [number, number, number],
+    debug?: boolean, onClick?: () => void,
+    retargetOptions?: { boneMap?: Record<string, string>, preserveHipPosition?: boolean }
 }) => {
     const groupRef = useRef<THREE.Group>(null);
     const { scene, animations } = useGLTF(model);
@@ -43,10 +49,10 @@ const AnimatedModel = ({ model, animation = "idle", onClick, height = 1, animati
         <group ref={groupRef} {...props} position={position} onClick={(e) => {
             if (onClick) onClick();
         }}>
-            {debug && <Box args={[0.3, height, 0.3]} position={[0, height / 2, 0]}>
+            {debug && <Box args={[0.3, scale, 0.3]} position={[0, 1 / 2 * scale, 0]}>
                 <meshBasicMaterial wireframe color="red" />
             </Box>}
-            {clonedScene && <primitive object={clonedScene} />}
+            {clonedScene && <primitive scale={scale / height} rotation={rotation} object={clonedScene} />}
         </group>
     );
 }
