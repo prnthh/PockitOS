@@ -15,7 +15,7 @@ export default function Home() {
                 <Canvas>
                     <Physics>
                         <AnimatedModel model={'/models/Soldier.glb'} position={[0, -2, 0]} scale={1} debug />
-                        <AnimatedModel model={'/models/Michelle.glb'} position={[-2, -2, 0]} height={4} rotation={[-Math.PI / 2, 0, 0]} debug />
+                        {/* <AnimatedModel model={'/models/Michelle.glb'} position={[-2, -2, 0]} height={4} rotation={[-Math.PI / 2, 0, 0]} debug /> */}
                         {/* <AnimatedModel model={'/models/rigga6.glb'} position={[2, -2, 2]} debug />
                         <AnimatedModel model={'/models/rigga2.glb'} position={[2, -2, 0]} debug />
                         <AnimatedModel model="/models/rigga4.glb" position={[0, -2, 2]} height={0.9} debug />

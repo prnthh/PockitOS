@@ -1,5 +1,4 @@
 import { useLoader } from '@react-three/fiber';
-import TWEEN from '@tweenjs/tween.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     AnimationAction,
@@ -38,7 +37,7 @@ export default function useAnimationState(
     // Define animations
     const ANIMATIONS = useMemo(() => {
         return {
-            idle: '/anim/idle3.fbx',
+            idle: '/anim/idle2.fbx',
             walk: '/anim/walk.fbx',
             run: '/anim/run.fbx',
             jump: '/anim/jump.fbx',
@@ -47,7 +46,7 @@ export default function useAnimationState(
     }, [animationOverrides]);
 
     // Load source model (with animations)
-    const { scene: sourceModel } = useLoader(GLTFLoader, '/models/rigga.glb');
+    const { scene: sourceModel } = useLoader(GLTFLoader, '/models/rigga4.glb');
 
     const sourceSkeleton = useMemo(() => {
         if (!sourceModel) return null;
@@ -78,18 +77,13 @@ export default function useAnimationState(
     useEffect(() => {
         if (clone && targetSkinnedMesh) {
             const targetScale = 1;
-            // clone.scale.setScalar(targetScale);
-            // Test rotation (start with no rotation to preserve original)
-            // clone.rotation.y = -Math.PI / 2; // Uncomment to test reference code's rotation
-            console.log('Target model rotation:', clone.rotation.y);
+            clone.scale.setScalar(targetScale);
 
-            // Add SkeletonHelper for debugging
             const helper = new SkeletonHelper(targetSkinnedMesh);
             clone.add(helper);
         }
     }, [clone, targetSkinnedMesh]);
 
-    // Retarget animations to target model
     const retargetOptions = {
         hip: 'mixamorigHips',
         scale: 1,
