@@ -1,6 +1,6 @@
 import { BallCollider, CapsuleCollider, CuboidCollider, RapierRigidBody, RigidBody } from "@react-three/rapier";
 import React, { memo, useRef, useState, Suspense } from "react";
-import AnimatedModel from "./animatedModel";
+import AnimatedModel from "../../../shared/animatedModel";
 import usePhysicsWalk from "./usePhysicsWalk";
 import * as THREE from "three"
 

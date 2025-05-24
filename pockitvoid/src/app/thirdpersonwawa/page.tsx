@@ -3,8 +3,8 @@
 import { Canvas } from "@react-three/fiber";
 import { Physics, RigidBody } from "@react-three/rapier";
 import { OrbitControls } from "@react-three/drei";
-import { CharacterController } from "./player/player";
 import Controls from "@/shared/ControlsProvider";
+import { CharacterController } from "./CharacterController";
 
 export default function Home() {
     return (
@@ -29,7 +29,6 @@ export default function Home() {
                             </RigidBody>
                             <ambientLight intensity={0.5} />
                             <pointLight position={[10, 10, 10]} />
-                            <OrbitControls />
                         </Physics>
                     </Canvas>
                 </Controls>

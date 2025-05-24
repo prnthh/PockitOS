@@ -3,7 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { SkeletonUtils } from "three-stdlib";
-import useAnimationState from "./useAnimationState";
+import useAnimationState from "../app/npc/ped/useAnimationState";
 
 const AnimatedModel = ({ model, animation, onClick, height, animationOverrides, ...props }: {
     model: string; animation: string, height: number, animationOverrides?: { [key: string]: string }, onClick?: () => void;
@@ -40,7 +40,7 @@ const AnimatedModel = ({ model, animation, onClick, height, animationOverrides, 
     });
 
     return (
-        <group ref={groupRef} {...props} position={[0, -height, 0]} onClick={(e) => {
+        <group ref={groupRef} {...props} position={[0, 0, 0]} onClick={(e) => {
             if (onClick) onClick();
         }}>
             {clonedScene && <primitive object={clonedScene} />}

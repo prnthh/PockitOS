@@ -3,7 +3,7 @@ import { KeyboardControls, KeyboardControlsEntry } from '@react-three/drei';
 
 export enum WalkControls {
     forward = 'forward',
-    back = 'back',
+    backward = 'backward',
     left = 'left',
     right = 'right',
     jump = 'jump',
@@ -17,14 +17,13 @@ export enum WalkControls {
 
 const walkControlKeys = [
     { name: WalkControls.forward, keys: ['ArrowUp', 'KeyW'] },
-    { name: WalkControls.back, keys: ['ArrowDown', 'KeyS'] },
+    { name: WalkControls.backward, keys: ['ArrowDown', 'KeyS'] },
     { name: WalkControls.left, keys: ['ArrowLeft', 'KeyA'] },
     { name: WalkControls.right, keys: ['ArrowRight', 'KeyD'] },
     { name: WalkControls.run, keys: ['Shift'] },
     { name: WalkControls.jump, keys: ['Space'] },
     { name: WalkControls.use, keys: ['KeyE'] },
     { name: WalkControls.altUse, keys: ['KeyQ'] },
-    { name: WalkControls.brake, keys: ['Space'] },
     { name: WalkControls.reset, keys: ['KeyR'] },
 ]
 

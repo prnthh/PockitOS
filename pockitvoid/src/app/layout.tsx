@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 const allExperiments = [
-  'barebones', 'car', 'interior', 'thirdperson', 'firstperson', 'npc', 'xr', 'playground',
+  'barebones', 'car', 'interior', 'thirdperson', 'thirdpersonwawa', 'thirdperson6jump', 'firstperson', 'npc', 'xr', 'miladychess', 'miladysurfer', 'playground',
 ]
 
 
