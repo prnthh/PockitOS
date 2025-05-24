@@ -17,7 +17,7 @@ export default function Home() {
                             </mesh>
                         </RigidBody>
                         <RigidBody type="fixed">
-                            <mesh position={[0, -2, 0]} scale={[10, 0.5, 10]}>
+                            <mesh position={[0, -2, 0]} scale={[10, 0.1, 10]}>
                                 <boxGeometry />
                                 <meshStandardMaterial color="gray" />
                             </mesh>

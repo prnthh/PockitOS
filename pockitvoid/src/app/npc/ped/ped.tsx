@@ -1,5 +1,5 @@
 import { BallCollider, CapsuleCollider, CuboidCollider, RapierRigidBody, RigidBody } from "@react-three/rapier";
-import React, { memo, useRef, useState, Suspense } from "react";
+import React, { memo, useRef, useState, Suspense, useEffect } from "react";
 import AnimatedModel from "../../../shared/HumanoidModel";
 import usePhysicsWalk from "./usePhysicsWalk";
 import * as THREE from "three"
@@ -13,6 +13,12 @@ const Ped = memo(({ modelUrl, position, height = 0.95, roundHeight = 0.25 }: {
 
     const rigidBodyRef = useRef<RapierRigidBody>(null);
     const [animation, setAnimation] = useState<string>("idle");
+
+    useEffect(() => {
+        if (position) {
+            rigidBodyRef.current?.setTranslation(new THREE.Vector3(position[0], position[1], position[2]), true);
+        }
+    }, [rigidBodyRef.current]);
 
     const { isMoving, targetReached } = usePhysicsWalk(
         rigidBodyRef,

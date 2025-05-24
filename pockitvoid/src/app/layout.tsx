@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 const allExperiments = [
-  'barebones', 'ground', 'lighting', 'car', 'interior', 'thirdperson/wawa', 'thirdperson/shouldercam', 'thirdperson/animations', 'nameaddressing', 'playerswitchtonpcandopendoor', 'npclifesimulator', 'npc', 'xr', 'miladychess', 'miladysurfer', 'playground',
+  'barebones', 'ground', 'lighting', 'car', 'interior', 'thirdperson/wawa', 'thirdperson/shouldercam', 'thirdperson/animations', 'nameaddressing', 'playerswitchtonpcandopendoor', 'npclifesimulator', 'npc', 'retargeting', 'xr', 'miladychess', 'miladysurfer', 'playground',
 ]
 
 

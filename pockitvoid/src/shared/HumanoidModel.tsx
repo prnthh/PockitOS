@@ -5,8 +5,8 @@ import * as THREE from "three";
 import { SkeletonUtils } from "three-stdlib";
 import useAnimationState from "./useAnimationState";
 
-const AnimatedModel = ({ model, animation, onClick, height, animationOverrides, ...props }: {
-    model: string; animation: string, height: number, animationOverrides?: { [key: string]: string }, onClick?: () => void;
+const AnimatedModel = ({ model, animation = "idle", onClick, height = 1, animationOverrides, position = [0, 0, 0], debug = false, ...props }: {
+    model: string; animation?: string, height?: number, animationOverrides?: { [key: string]: string }, position?: [number, number, number], debug: boolean, onClick?: () => void;
 }) => {
     const groupRef = useRef<THREE.Group>(null);
     const { scene, animations } = useGLTF(model);
@@ -40,9 +40,12 @@ const AnimatedModel = ({ model, animation, onClick, height, animationOverrides, 
     });
 
     return (
-        <group ref={groupRef} {...props} position={[0, 0, 0]} onClick={(e) => {
+        <group ref={groupRef} {...props} position={position} onClick={(e) => {
             if (onClick) onClick();
         }}>
+            {debug && <Box args={[0.3, height, 0.3]} position={[0, height / 2, 0]}>
+                <meshBasicMaterial wireframe color="red" />
+            </Box>}
             {clonedScene && <primitive object={clonedScene} />}
         </group>
     );
