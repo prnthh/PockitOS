@@ -1,4 +1,4 @@
-import React, { useMemo, createContext, useState, useContext } from 'react';
+import React, { useMemo, createContext, useState, useContext, useEffect } from 'react';
 import { KeyboardControls, KeyboardControlsEntry } from '@react-three/drei';
 
 export enum WalkControls {
@@ -10,8 +10,6 @@ export enum WalkControls {
     run = 'run',
     use = 'use',
     altUse = 'altUse',
-
-    brake = 'brake',
     reset = 'reset',
 }
 
@@ -28,17 +26,42 @@ const walkControlKeys = [
 ]
 
 
+export enum DriveControls {
+    forward = 'forward',
+    backward = 'backward',
+    left = 'left',
+    right = 'right',
+    use = 'use',
+    run = 'run',
+    altUse = 'altUse',
+    brake = 'brake',
+    reset = 'reset',
+}
+
+const driveControlKeys = [
+    { name: DriveControls.forward, keys: ['ArrowUp', 'KeyW'] },
+    { name: DriveControls.backward, keys: ['ArrowDown', 'KeyS'] },
+    { name: DriveControls.left, keys: ['ArrowLeft', 'KeyA'] },
+    { name: DriveControls.right, keys: ['ArrowRight', 'KeyD'] },
+    { name: DriveControls.run, keys: ['Shift'] },
+    { name: DriveControls.use, keys: ['KeyE'] },
+    { name: DriveControls.altUse, keys: ['KeyQ'] },
+    { name: DriveControls.brake, keys: ['Space'] },
+    { name: DriveControls.reset, keys: ['KeyR'] },
+]
+
+
 const controlSchemes = {
     simple: walkControlKeys,
-    fps: walkControlKeys,
+    drive: driveControlKeys,
     none: [],
 }
 
-export type ControlName = WalkControls;
+export type ControlName = WalkControls | DriveControls;
 
 const ControlSchemeContext = createContext<{
     scheme: keyof typeof controlSchemes;
-    setScheme: (scheme: keyof typeof controlSchemes) => void;
+    setScheme: React.Dispatch<React.SetStateAction<keyof typeof controlSchemes>>
 }>({
     scheme: 'simple',
     setScheme: () => { },
@@ -48,9 +71,7 @@ export const useControlScheme = () => useContext(ControlSchemeContext);
 
 function Controls({ children }: { children: React.ReactNode }) {
     const [controlScheme, setControlScheme] = useState<keyof typeof controlSchemes>('simple');
-    const map = useMemo<KeyboardControlsEntry<ControlName>[]>(() => [
-        ...(controlSchemes[controlScheme])
-    ], [controlScheme])
+    const map = useMemo<KeyboardControlsEntry<ControlName>[]>(() => (controlSchemes[controlScheme]), [controlScheme])
 
     return (
         <ControlSchemeContext.Provider value={{
@@ -66,7 +87,7 @@ function Controls({ children }: { children: React.ReactNode }) {
                 padding: '10px',
                 borderRadius: '5px',
                 color: 'white'
-            }}>controls active
+            }}>{controlScheme} controls
             </div>
             <KeyboardControls map={map}>
                 {children}

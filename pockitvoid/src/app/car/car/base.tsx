@@ -1,7 +1,7 @@
 import { Collider } from '@dimforge/rapier3d-compat'
-import { KeyboardControls, OrbitControls, useGLTF, useKeyboardControls } from '@react-three/drei'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { CuboidCollider, Physics, RapierRigidBody, RigidBody, useRapier } from '@react-three/rapier'
+import { useKeyboardControls } from '@react-three/drei'
+import { useFrame, useThree } from '@react-three/fiber'
+import { CuboidCollider, RapierRigidBody, RigidBody, useRapier } from '@react-three/rapier'
 import { RefObject, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { WheelInfo, useVehicleController } from './vehicleController'
@@ -10,24 +10,6 @@ import { useControlScheme } from '../../../shared/ControlsProvider' // added
 const spawn = {
     position: [-7, 2, -130] as THREE.Vector3Tuple,
     rotation: [0, Math.PI / 2, 0] as THREE.Vector3Tuple,
-}
-
-const controls = [
-    { name: 'forward', keys: ['ArrowUp', 'KeyW'] },
-    { name: 'back', keys: ['ArrowDown', 'KeyS'] },
-    { name: 'left', keys: ['ArrowLeft', 'KeyA'] },
-    { name: 'right', keys: ['ArrowRight', 'KeyD'] },
-    { name: 'brake', keys: ['Space'] },
-    { name: 'reset', keys: ['KeyR'] },
-]
-
-type KeyControls = {
-    forward: boolean
-    back: boolean
-    left: boolean
-    right: boolean
-    brake: boolean
-    reset: boolean
 }
 
 const wheelInfo: Omit<WheelInfo, 'position'> = {
@@ -53,11 +35,15 @@ const wheels: WheelInfo[] = [
 
 const _airControlAngVel = new THREE.Vector3()
 
-const Vehicle = () => {
+const Vehicle = ({ driving = true }) => {
     const { world, rapier } = useRapier()
     const threeControls = useThree((s) => s.controls)
-    const [, getKeyboardControls] = useKeyboardControls<keyof KeyControls>()
+    const [, getKeyboardControls] = useKeyboardControls()
     const { scheme, setScheme } = useControlScheme(); // added
+
+    useEffect(() => {
+        driving && setScheme("drive");
+    }, [driving, setScheme]);
 
     const chasisMeshRef = useRef<THREE.Mesh>(null!)
     const chasisBodyRef = useRef<RapierRigidBody>(null!)
@@ -85,6 +71,7 @@ const Vehicle = () => {
         const chassisRigidBody = controller.chassis()
 
         const controls = getKeyboardControls()
+        if (controls.brake === undefined) return
 
         // rough ground check
         let outOfBounds = false
@@ -103,7 +90,7 @@ const Vehicle = () => {
             ground.current = collider
         }
 
-        const engineForce = Number(controls.forward) * accelerateForce - Number(controls.back)
+        const engineForce = Number(controls.forward) * accelerateForce - Number(controls.backward)
 
         controller.setWheelEngineForce(2, -engineForce)
         controller.setWheelEngineForce(3, -engineForce)
@@ -124,7 +111,7 @@ const Vehicle = () => {
 
         // air control
         if (!ground.current) {
-            const forwardAngVel = Number(controls.forward) - Number(controls.back)
+            const forwardAngVel = Number(controls.forward) - Number(controls.backward)
             const sideAngVel = Number(controls.left) - Number(controls.right)
 
             const angvel = _airControlAngVel.set(0, sideAngVel * t, forwardAngVel * t)
