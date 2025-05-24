@@ -4,7 +4,13 @@ import AnimatedModel from "../../../shared/animatedModel";
 import usePhysicsWalk from "./usePhysicsWalk";
 import * as THREE from "three"
 
-const Ped = memo(({ modelUrl, position }: { modelUrl: string, position: [number, number, number] | undefined }) => {
+const Ped = memo(({ modelUrl, position, height = 0.95, roundHeight = 0.25 }: {
+    modelUrl: string, position: [number, number, number] | undefined,
+    height?: number,
+    roundHeight?: number
+}) => {
+
+
     const rigidBodyRef = useRef<RapierRigidBody>(null);
     const [animation, setAnimation] = useState<string>("idle");
 
@@ -24,11 +30,9 @@ const Ped = memo(({ modelUrl, position }: { modelUrl: string, position: [number,
                 angularDamping={0.5}
                 enabledRotations={[false, true, false]}
             >
-                <CapsuleCollider args={[0.3, 0.15]} />
-                <CuboidCollider args={[0.2, 0.3, 0.1]} />
-                <BallCollider args={[0.2]} position={[0, 0, 0.2]} sensor />
+                <CapsuleCollider args={[(height - (roundHeight * 1.9)) / 2, roundHeight]} position={[0, (height / 2), 0]} />
                 <AnimatedModel model={modelUrl} animation={animation}
-                    height={0.45}
+                    height={0.95}
                     onClick={() => {
                         // Handling click
                     }} />
