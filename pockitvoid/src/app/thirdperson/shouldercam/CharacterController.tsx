@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, MutableRefObject, useMemo, useCallback } f
 import { MathUtils, Vector3, Group, PerspectiveCamera, Euler, Quaternion } from "three";
 import { degToRad } from "three/src/math/MathUtils.js";
 import AnimatedModel from "@/shared/HumanoidModel";
+import * as THREE from "three";
 import { FollowCam } from "../../../shared/FollowCam";
 
 const normalizeAngle = (angle: number): number => {
@@ -187,7 +188,11 @@ export const CharacterController = () => {
     return (
         <RigidBody colliders={false} lockRotations ref={rb} position={[0, 4, 0]}>
             <group ref={container}>
-                <FollowCam height={height} shoulderCamMode={shoulderCamMode} />
+                <FollowCam height={height}
+                    verticalRotation={verticalRotation}
+                    cameraOffset={shoulderCamMode ? new Vector3(-0.5, 0.5, 0.4) : new Vector3(0, 0.5, -0.5)}
+                    targetOffset={shoulderCamMode ? new Vector3(0, height / 3, 1) : new Vector3(0, height / 2, 1.5)}
+                />
                 <group ref={character}>
                     <AnimatedModel
                         model="/models/rigga.glb"

@@ -1,46 +1,46 @@
 import { Box } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
-import { useRef } from "react";
+import { Ref, useRef } from "react";
 import { Vector3, Group } from "three";
 
 
-export const FollowCam = ({ height, shoulderCamMode }: { height: number, shoulderCamMode: boolean }) => {
+export const FollowCam = ({
+    height,
+    cameraOffset = new Vector3(0, -0.3, -3),
+    targetOffset = new Vector3(0, 0.3, 3),
+    verticalRotation,
+    cameraSpeed = 0.1
+}: {
+    height: number,
+    cameraOffset: Vector3,
+    targetOffset: Vector3,
+    verticalRotation?: React.RefObject<number>
+    cameraSpeed?: number
+}) => {
 
     const cameraTarget = useRef<Group>(null);
     const cameraPosition = useRef<Group>(null);
     const cameraWorldPosition = useRef<Vector3>(new Vector3());
     const cameraLookAtWorldPosition = useRef<Vector3>(new Vector3());
     const cameraLookAt = useRef<Vector3>(new Vector3());
-    const verticalRotation = useRef<number>(0); // Add this line
 
     useFrame(({ camera }) => {
         if (cameraPosition.current) {
-            if (shoulderCamMode) {
-                // Right shoulder position
-                cameraPosition.current.position.x = -0.5;
-                cameraPosition.current.position.y = height + 0.3;
-                cameraPosition.current.position.z = -0.5;
-            } else {
-                // Normal third person position
-                cameraPosition.current.position.x = 0;
-                cameraPosition.current.position.y = 1 + Math.sin(verticalRotation.current);
-                cameraPosition.current.position.z = -1 - Math.cos(verticalRotation.current);
-            }
+            // Right shoulder position
+            cameraPosition.current.position.x = cameraOffset.x;
+            cameraPosition.current.position.y = height + cameraOffset.y + Math.sin(verticalRotation?.current ?? 0);
+            cameraPosition.current.position.z = cameraOffset.z - Math.cos(verticalRotation?.current ?? 0);
+
             cameraPosition.current.getWorldPosition(cameraWorldPosition.current);
-            camera.position.lerp(cameraWorldPosition.current, 0.1);
+            camera.position.lerp(cameraWorldPosition.current, cameraSpeed);
         }
         if (cameraTarget.current) {
-            if (shoulderCamMode) {
-                cameraTarget.current.position.x = 0;
-                cameraTarget.current.position.y = height - 0.3;
-                cameraTarget.current.position.z = 3;
-            } else {
-                cameraTarget.current.position.x = 0;
-                cameraTarget.current.position.y = height * 0.8;
-                cameraTarget.current.position.z = 1.5;
-            }
+            cameraTarget.current.position.x = targetOffset.x;
+            cameraTarget.current.position.y = targetOffset.y - Math.sin(verticalRotation?.current ?? 0);
+            cameraTarget.current.position.z = targetOffset.z + Math.cos(verticalRotation?.current ?? 0);
+
             cameraTarget.current.getWorldPosition(cameraLookAtWorldPosition.current);
-            cameraLookAt.current.lerp(cameraLookAtWorldPosition.current, 0.1);
+            cameraLookAt.current.lerp(cameraLookAtWorldPosition.current, cameraSpeed);
             camera.lookAt(cameraLookAt.current);
         }
     });
