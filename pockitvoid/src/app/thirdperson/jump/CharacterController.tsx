@@ -1,11 +1,11 @@
 import { Box, useKeyboardControls } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
+import { Camera, useFrame } from "@react-three/fiber";
 import { CapsuleCollider, RapierRigidBody, RigidBody, useRapier } from "@react-three/rapier";
-import { useEffect, useRef, useState, MutableRefObject } from "react";
+import { useEffect, useRef, useState, MutableRefObject, useMemo, useCallback } from "react";
 import { MathUtils, Vector3, Group, PerspectiveCamera, Euler, Quaternion } from "three";
 import { degToRad } from "three/src/math/MathUtils.js";
-import AnimatedModel from "@/shared/animatedModel";
-import * as THREE from "three";
+import AnimatedModel from "@/shared/HumanoidModel";
+import { FollowCam } from "../../../shared/FollowCam";
 
 const normalizeAngle = (angle: number): number => {
     while (angle > Math.PI) angle -= 2 * Math.PI;
@@ -29,7 +29,7 @@ const lerpAngle = (start: number, end: number, t: number): number => {
 };
 
 export const CharacterController = () => {
-    const WALK_SPEED = 2, RUN_SPEED = 4, JUMP_FORCE = 5.5;
+    const WALK_SPEED = 2, RUN_SPEED = 4, JUMP_FORCE = 4.5;
 
     const height = 0.95
     const roundHeight = 0.25
@@ -41,17 +41,16 @@ export const CharacterController = () => {
     const characterRotationTarget = useRef<number>(0);
     const rotationTarget = useRef<number>(0);
     const verticalRotation = useRef<number>(0); // Add this line
-    const cameraTarget = useRef<Group>(null);
-    const cameraPosition = useRef<Group>(null);
-    const cameraWorldPosition = useRef<Vector3>(new Vector3());
-    const cameraLookAtWorldPosition = useRef<Vector3>(new Vector3());
-    const cameraLookAt = useRef<Vector3>(new Vector3());
+
     const [, get] = useKeyboardControls();
     const isPointerLocked = useRef<boolean>(false);
     const lastMouseX = useRef<number | null>(null);
     const [animation, setAnimation] = useState<"idle" | "walk" | "run" | "jump">("idle");
     const [shoulderCamMode, setShoulderCamMode] = useState(false);
-    const [canJump, setCanJump] = useState(true); // Add canJump state
+
+    const velocityRef = useRef<Vector3>(new Vector3(0, 0, 0));
+    const isVelocityRefDirty = useRef<boolean>(false);
+    const canJump = useRef<boolean>(true);
 
     useEffect(() => {
         const onMouseDown = (e: MouseEvent | TouchEvent) => {
@@ -101,37 +100,10 @@ export const CharacterController = () => {
         };
     }, []);
 
-    // Ground check and jump logic using raycast
-    const jump = () => {
-        if (!rb.current || !rapier) return;
-        rb.current.wakeUp && rb.current.wakeUp();
-
-        // Use new Rapier Ray syntax (origin and direction as plain objects)
-        const origin = rb.current.translation();
-        const rayOrigin = { x: origin.x, y: origin.y - (height / 2) - 0.01, z: origin.z };
-        const direction = { x: 0, y: -1, z: 0 };
-        const ray = new rapier.Ray(rayOrigin, direction);
-        const maxToi = 0.3;
-        const solid = true;
-        const hit = world.castRay(ray, maxToi, solid);
-
-        // Only jump if something is close below and vertical velocity is near zero
-        const vel = rb.current.linvel();
-        if (hit && hit.timeOfImpact < 0.15 && Math.abs(vel.y) < 0.2) {
-            // Set the velocity directly, just like x/z movement
-            rb.current.setLinvel({
-                x: vel.x,
-                y: JUMP_FORCE,
-                z: vel.z
-            }, true);
-            setCanJump(false);
-        }
-    };
-
     useEffect(() => {
         const handleKeyUp = (e: KeyboardEvent) => {
             if (e.code === "Space") {
-                setCanJump(true);
+                // Reset jump state on key release
             }
         };
         window.addEventListener("keyup", handleKeyUp);
@@ -140,40 +112,29 @@ export const CharacterController = () => {
 
     useFrame(({ camera }) => {
         if (rb.current) {
-            const vel = rb.current.linvel();
+            const dir = rb.current.linvel();
+            velocityRef.current.set(dir.x, dir.y, dir.z);
 
+            const keyInputs = get();
             let moveX = 0, moveZ = 0;
 
             // Handle movement
-            if (get().forward) moveZ += 1;
-            if (get().backward) moveZ -= 1;
-            if (get().left) moveX += 1;
-            if (get().right) moveX -= 1;
-
-            // Use raycast-based jump
-            if (get().jump && canJump) {
-                jump();
-            }
+            if (keyInputs.forward) moveZ += 1;
+            if (keyInputs.backward) moveZ -= 1;
+            if (keyInputs.left) moveX += 1;
+            if (keyInputs.right) moveX -= 1;
 
             const speed = get().run ? RUN_SPEED : WALK_SPEED;
-            if (moveX !== 0 || moveZ !== 0) {
+
+            if ((moveX !== 0 || moveZ !== 0)) {
                 const dir = new Vector3(moveX, 0, moveZ).normalize();
                 dir.applyAxisAngle(new Vector3(0, 1, 0), rotationTarget.current);
 
                 // Apply movement with current Y velocity preserved
-                rb.current.setLinvel({
-                    x: dir.x * speed,
-                    y: rb.current.linvel().y,
-                    z: dir.z * speed
-                }, true);
-
+                velocityRef.current.set(dir.x * speed, velocityRef.current.y, dir.z * speed);
+                isVelocityRefDirty.current = true;
                 setAnimation(speed === RUN_SPEED ? "run" : "walk");
             } else {
-                rb.current.setLinvel({
-                    x: 0,
-                    y: rb.current.linvel().y,
-                    z: 0
-                }, true);
                 setAnimation("idle");
             }
 
@@ -181,51 +142,52 @@ export const CharacterController = () => {
             if (container.current) {
                 container.current.rotation.y = rotationTarget.current;
             }
-        }
-        if (cameraPosition.current) {
-            if (shoulderCamMode) {
-                // Right shoulder position
-                cameraPosition.current.position.x = -0.5;
-                cameraPosition.current.position.y = height + 0.3;
-                cameraPosition.current.position.z = -0.5;
-            } else {
-                // Normal third person position
-                cameraPosition.current.position.x = 0;
-                cameraPosition.current.position.y = 1 + Math.sin(verticalRotation.current);
-                cameraPosition.current.position.z = -1 - Math.cos(verticalRotation.current);
+
+            if (!canJump.current) {
+                if (checkGrounded()) {
+                    canJump.current = true; // Reset jump state if grounded
+                }
+            } else if (keyInputs.jump && canJump.current) {
+                if (!rb.current || !rapier) return;
+                rb.current.wakeUp?.();
+
+                if ((keyInputs.jump && canJump.current)) {
+                    if (checkGrounded()) {
+                        // Set the velocity directly, just like x/z movement
+                        velocityRef.current.y = JUMP_FORCE; // Ensure Y velocity is set for jump
+                        isVelocityRefDirty.current = true;
+                        canJump.current = false;
+                        setAnimation("jump");
+                    }
+                }
             }
-            cameraPosition.current.getWorldPosition(cameraWorldPosition.current);
-            camera.position.lerp(cameraWorldPosition.current, 0.1);
-        }
-        if (cameraTarget.current) {
-            if (shoulderCamMode) {
-                cameraTarget.current.position.x = 0;
-                cameraTarget.current.position.y = height - 0.3;
-                cameraTarget.current.position.z = 3;
-            } else {
-                cameraTarget.current.position.x = 0;
-                cameraTarget.current.position.y = height * 0.8;
-                cameraTarget.current.position.z = 1.5;
+
+            if (isVelocityRefDirty.current) {
+                rb.current.setLinvel(velocityRef.current, true);
+                isVelocityRefDirty.current = false;
             }
-            cameraTarget.current.getWorldPosition(cameraLookAtWorldPosition.current);
-            cameraLookAt.current.lerp(cameraLookAtWorldPosition.current, 0.1);
-            camera.lookAt(cameraLookAt.current);
         }
     });
+
+
+    const checkGrounded = useMemo(() => {
+        return () => {
+            if (!rb.current || !rapier) return false;
+            const origin = rb.current.translation();
+            const rayOrigin = { x: origin.x, y: origin.y - (height / 2) - 0.01, z: origin.z };
+            const direction = { x: 0, y: -1, z: 0 };
+            const ray = new rapier.Ray(rayOrigin, direction);
+            const maxToi = 0.3;
+            const solid = true;
+            const hit = world.castRay(ray, maxToi, solid);
+            return !!hit && hit.timeOfImpact < 0.15 && Math.abs(rb.current.linvel().y) < 0.2;
+        };
+    }, [rb, rapier, world, height]);
 
     return (
         <RigidBody colliders={false} lockRotations ref={rb} position={[0, 4, 0]}>
             <group ref={container}>
-                <group ref={cameraTarget} position-z={1.5} position-y={height * 0.8}>
-                    <Box args={[0.1, 0.1, 0.1]}>
-                        <meshBasicMaterial wireframe color="red" />
-                    </Box>
-                </group>
-                <group ref={cameraPosition} position-y={height * 0.8} position-z={-1}>
-                    <Box args={[0.1, 0.1, 0.1]}>
-                        <meshBasicMaterial wireframe color="blue" />
-                    </Box>
-                </group>
+                <FollowCam height={height} shoulderCamMode={shoulderCamMode} />
                 <group ref={character}>
                     <AnimatedModel
                         model="/models/rigga.glb"

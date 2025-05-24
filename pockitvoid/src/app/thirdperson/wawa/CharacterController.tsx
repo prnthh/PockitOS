@@ -4,7 +4,7 @@ import { CapsuleCollider, RapierRigidBody, RigidBody } from "@react-three/rapier
 import { useEffect, useRef, useState, MutableRefObject } from "react";
 import { MathUtils, Vector3, Group, PerspectiveCamera } from "three";
 import { degToRad } from "three/src/math/MathUtils.js";
-import AnimatedModel from "@/shared/animatedModel";
+import AnimatedModel from "@/shared/HumanoidModel";
 
 const normalizeAngle = (angle: number): number => {
     while (angle > Math.PI) angle -= 2 * Math.PI;
