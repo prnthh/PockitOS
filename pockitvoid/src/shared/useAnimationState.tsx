@@ -39,10 +39,10 @@ export default function useAnimationState(
 
     const ANIMATIONS = useMemo(() => {
         return {
-            idle: 'anim/idle2.fbx',
-            walk: 'anim/walk.fbx',
-            run: 'anim/run.fbx',
-            jump: 'anim/jump.fbx',
+            idle: '/anim/idle2.fbx',
+            walk: '/anim/walk.fbx',
+            run: '/anim/run.fbx',
+            jump: '/anim/jump.fbx',
             ...animationOverrides,
         }
     }, [animationOverrides])

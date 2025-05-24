@@ -49,7 +49,7 @@ export const CharacterController = () => {
     const [, get] = useKeyboardControls();
     const isPointerLocked = useRef<boolean>(false);
     const lastMouseX = useRef<number | null>(null);
-    const [animation, setAnimation] = useState<"idle" | "walk" | "run">("idle");
+    const [animation, setAnimation] = useState<"idle" | "walk" | "run" | "jump">("idle");
     const [shoulderCamMode, setShoulderCamMode] = useState(false);
     const [canJump, setCanJump] = useState(true); // Add canJump state
 
