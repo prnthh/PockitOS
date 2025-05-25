@@ -8,10 +8,12 @@ import { GLTFLoader } from "three-stdlib";
 import { FBXLoader } from "three/examples/jsm/Addons.js";
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
-function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Soldier.glb' } = {
-    model: '/models/Soldier.glb',
-    source: '/models/Michelle.glb'
-}) {
+type RetargetedModelsProps = {
+    model?: string;
+    source?: string;
+};
+
+function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Michelle.glb' }: RetargetedModelsProps) {
 
     const { scene: sourceModel } = useGLTF(source);
     const { scene: targetModel } = useGLTF(model);
@@ -35,7 +37,6 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Sol
     }
 
     function retargetAnimationClip(source: any, targetModel: any) {
-        // Get the target skinned mesh - more robust approach
         let targetSkin: THREE.SkinnedMesh | null = null;
 
         targetModel.scene.traverse((child: THREE.Object3D) => {
@@ -65,7 +66,6 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Sol
 
         const retargetOptions = {
             hip: "mixamorigHips",
-            // Fixed: Use correct scale calculation
             scale: 1 / targetModel.scene.scale.y,
             localOffsets: {
                 mixamorigLeftShoulder: rotateCW45,
@@ -132,21 +132,17 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Sol
 
         Promise.all([
             new Promise<any>((resolve, reject) => {
-                loader.load("/models/Soldier.glb", resolve, undefined, reject);
+                loader.load(model, resolve, undefined, reject);
             }),
         ]).then(([targetModel]) => {
             if (!mounted) return;
 
-            // Position and scale models
             targetModel.scene.position.z -= 0.1;
             targetModel.scene.scale.setScalar(0.01);
 
-            targetModel.scene.rotation.x = Math.PI / 2;
+            targetModel.scene.rotation.x = -Math.PI / 2;
 
-            // Get source animation data using FBX animation
             const source = getSourceWithFBXAnimation(sourceModel, animationClip);
-
-            // Retarget the FBX animation clip to work with target model
             const targetMixer = retargetAnimationClip(source, targetModel);
 
             if (targetMixer) {
@@ -159,7 +155,6 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Sol
 
         return () => {
             mounted = false;
-            // Cleanup mixers
             if (mixers.current) {
                 mixers.current.target.stopAllAction();
             }
@@ -181,8 +176,6 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Sol
                 <planeGeometry args={[50, 50]} />
                 <meshStandardMaterial color="#888" opacity={0.2} transparent />
             </mesh>
-            {/* Uncomment for debugging skeleton */}
-            {/* <primitive object={helpers.current} /> */}
         </group>
     );
 }
