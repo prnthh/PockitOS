@@ -124,8 +124,8 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Mic
         if (!animationClip || !gltfSource?.scene || !gltfTarget?.scene) return;
 
         // Clone models to avoid shared state mutation
-        const sourceClone = SkeletonUtils.clone(gltfSource.scene);
-        const targetClone = SkeletonUtils.clone(gltfTarget.scene);
+        const sourceClone = SkeletonUtils.clone(gltfSource.scene) as THREE.Group;
+        const targetClone = SkeletonUtils.clone(gltfTarget.scene) as THREE.Group;
 
         targetClone.position.z -= 0.1;
         targetClone.scale.setScalar(0.01);
