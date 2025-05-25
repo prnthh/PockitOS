@@ -4,7 +4,6 @@ import { Canvas, useFrame, useLoader } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import { useEffect, useRef, useState, Suspense } from "react";
 import * as THREE from "three";
-import { GLTFLoader } from "three-stdlib";
 import { FBXLoader } from "three/examples/jsm/Addons.js";
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
@@ -15,12 +14,11 @@ type RetargetedModelsProps = {
 
 function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Michelle.glb' }: RetargetedModelsProps) {
 
-    const { scene: sourceModel } = useGLTF(source);
-    const { scene: targetModel } = useGLTF(model);
+    const gltfSource = useGLTF(source);
+    const gltfTarget = useGLTF(model);
     const group = useRef<THREE.Group>(null);
     const [models, setModels] = useState<{ source: THREE.Group, target: THREE.Group } | null>(null);
     const mixers = useRef<{ target: THREE.AnimationMixer } | null>(null);
-
     const helpers = useRef<THREE.Group>(new THREE.Group());
 
     // Load animation from FBX file
@@ -36,10 +34,10 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Mic
         return { clip, skeleton, mixer };
     }
 
-    function retargetAnimationClip(source: any, targetModel: any) {
+    function retargetAnimationClip(source: any, targetModel: THREE.Group) {
         let targetSkin: THREE.SkinnedMesh | null = null;
 
-        targetModel.scene.traverse((child: THREE.Object3D) => {
+        targetModel.traverse((child: THREE.Object3D) => {
             if (child instanceof THREE.SkinnedMesh && !targetSkin) {
                 targetSkin = child;
             }
@@ -50,7 +48,7 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Mic
             return null;
         }
 
-        const targetSkelHelper = new THREE.SkeletonHelper(targetModel.scene);
+        const targetSkelHelper = new THREE.SkeletonHelper(targetModel);
         helpers.current.add(targetSkelHelper);
 
         const rotateCW45 = new THREE.Matrix4().makeRotationY(THREE.MathUtils.degToRad(45));
@@ -66,7 +64,7 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Mic
 
         const retargetOptions = {
             hip: "mixamorigHips",
-            scale: 1 / targetModel.scene.scale.y,
+            scale: 1 / targetModel.scale.y,
             localOffsets: {
                 mixamorigLeftShoulder: rotateCW45,
                 mixamorigRightShoulder: rotateCCW180,
@@ -109,7 +107,6 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Mic
             },
         };
 
-        // Retarget the FBX animation clip to work with target model
         const retargetedClip = SkeletonUtils.retargetClip(
             targetSkin,
             source.skeleton,
@@ -117,7 +114,6 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Mic
             retargetOptions
         );
 
-        // Fixed: Create mixer for target SkinnedMesh directly
         const mixer = new THREE.AnimationMixer(targetSkin);
         mixer.clipAction(retargetedClip).play();
 
@@ -125,41 +121,30 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Mic
     }
 
     useEffect(() => {
-        if (!animationClip || !sourceModel) return;
+        if (!animationClip || !gltfSource?.scene || !gltfTarget?.scene) return;
 
-        let mounted = true;
-        const loader = new GLTFLoader();
+        // Clone models to avoid shared state mutation
+        const sourceClone = SkeletonUtils.clone(gltfSource.scene);
+        const targetClone = SkeletonUtils.clone(gltfTarget.scene);
 
-        Promise.all([
-            new Promise<any>((resolve, reject) => {
-                loader.load(model, resolve, undefined, reject);
-            }),
-        ]).then(([targetModel]) => {
-            if (!mounted) return;
+        targetClone.position.z -= 0.1;
+        targetClone.scale.setScalar(0.01);
+        targetClone.rotation.x = -Math.PI / 2;
 
-            targetModel.scene.position.z -= 0.1;
-            targetModel.scene.scale.setScalar(0.01);
+        const source = getSourceWithFBXAnimation(sourceClone, animationClip);
+        const targetMixer = retargetAnimationClip(source, targetClone);
 
-            targetModel.scene.rotation.x = -Math.PI / 2;
-
-            const source = getSourceWithFBXAnimation(sourceModel, animationClip);
-            const targetMixer = retargetAnimationClip(source, targetModel);
-
-            if (targetMixer) {
-                mixers.current = { target: targetMixer };
-                setModels({ source: sourceModel, target: targetModel.scene });
-            }
-        }).catch(error => {
-            console.error("Error loading models:", error);
-        });
+        if (targetMixer) {
+            mixers.current = { target: targetMixer };
+            setModels({ source: sourceClone, target: targetClone });
+        }
 
         return () => {
-            mounted = false;
             if (mixers.current) {
                 mixers.current.target.stopAllAction();
             }
         };
-    }, [animationClip, sourceModel]);
+    }, [animationClip, gltfSource, gltfTarget]);
 
     useFrame((state, delta) => {
         if (mixers.current) {
