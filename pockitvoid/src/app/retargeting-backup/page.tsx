@@ -1,23 +1,17 @@
 "use client";
 
 import { Canvas, useFrame, useLoader } from "@react-three/fiber";
-import { OrbitControls, useGLTF } from "@react-three/drei";
+import { OrbitControls } from "@react-three/drei";
 import { useEffect, useRef, useState, Suspense } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three-stdlib";
 import { FBXLoader } from "three/examples/jsm/Addons.js";
 import * as SkeletonUtils from 'three/examples/jsm/utils/SkeletonUtils.js';
 
-function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Soldier.glb' } = {
-    model: '/models/Soldier.glb',
-    source: '/models/Michelle.glb'
-}) {
-
-    const { scene: sourceModel } = useGLTF(source);
-    const { scene: targetModel } = useGLTF(model);
+function RetargetedModels() {
     const group = useRef<THREE.Group>(null);
     const [models, setModels] = useState<{ source: THREE.Group, target: THREE.Group } | null>(null);
-    const mixers = useRef<{ target: THREE.AnimationMixer } | null>(null);
+    const mixers = useRef<{ source: THREE.AnimationMixer; target: THREE.AnimationMixer } | null>(null);
 
     const helpers = useRef<THREE.Group>(new THREE.Group());
 
@@ -25,11 +19,11 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Sol
     const animationFBX = useLoader(FBXLoader, '/anim/idle3.fbx');
     const animationClip = animationFBX.animations[0];
 
-    function getSourceWithFBXAnimation(sourceModel: THREE.Object3D, clip: THREE.AnimationClip) {
-        const helper = new THREE.SkeletonHelper(sourceModel);
+    function getSourceWithFBXAnimation(sourceModel: any, clip: THREE.AnimationClip) {
+        const helper = new THREE.SkeletonHelper(sourceModel.scene);
         helpers.current.add(helper);
         const skeleton = new THREE.Skeleton(helper.bones);
-        const mixer = new THREE.AnimationMixer(sourceModel);
+        const mixer = new THREE.AnimationMixer(sourceModel.scene);
         mixer.clipAction(clip).play();
         return { clip, skeleton, mixer };
     }
@@ -125,23 +119,30 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Sol
     }
 
     useEffect(() => {
-        if (!animationClip || !sourceModel) return;
+        if (!animationClip) return;
 
         let mounted = true;
         const loader = new GLTFLoader();
 
         Promise.all([
             new Promise<any>((resolve, reject) => {
+                loader.load("/models/Michelle.glb", resolve, undefined, reject);
+            }),
+            new Promise<any>((resolve, reject) => {
                 loader.load("/models/Soldier.glb", resolve, undefined, reject);
             }),
-        ]).then(([targetModel]) => {
+        ]).then(([sourceModel, targetModel]) => {
             if (!mounted) return;
 
             // Position and scale models
+            sourceModel.scene.position.x -= 0.8;
+            targetModel.scene.position.x += 0.7;
             targetModel.scene.position.z -= 0.1;
             targetModel.scene.scale.setScalar(0.01);
 
-            targetModel.scene.rotation.x = Math.PI / 2;
+            // Fix: Rotate both models upright (undo 90deg forward tilt)
+            sourceModel.scene.rotation.x = -Math.PI / 2;
+            targetModel.scene.rotation.x = -Math.PI / 2;
 
             // Get source animation data using FBX animation
             const source = getSourceWithFBXAnimation(sourceModel, animationClip);
@@ -150,8 +151,8 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Sol
             const targetMixer = retargetAnimationClip(source, targetModel);
 
             if (targetMixer) {
-                mixers.current = { target: targetMixer };
-                setModels({ source: sourceModel, target: targetModel.scene });
+                mixers.current = { source: source.mixer, target: targetMixer };
+                setModels({ source: sourceModel.scene, target: targetModel.scene });
             }
         }).catch(error => {
             console.error("Error loading models:", error);
@@ -161,13 +162,15 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Sol
             mounted = false;
             // Cleanup mixers
             if (mixers.current) {
+                mixers.current.source.stopAllAction();
                 mixers.current.target.stopAllAction();
             }
         };
-    }, [animationClip, sourceModel]);
+    }, [animationClip]);
 
     useFrame((state, delta) => {
         if (mixers.current) {
+            mixers.current.source.update(delta);
             mixers.current.target.update(delta);
         }
     });
@@ -176,6 +179,7 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Sol
 
     return (
         <group ref={group}>
+            <primitive object={models.source} />
             <primitive object={models.target} />
             <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
                 <planeGeometry args={[50, 50]} />
