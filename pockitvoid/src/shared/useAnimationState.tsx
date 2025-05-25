@@ -45,7 +45,6 @@ export default function useAnimationState(
         };
     }, [animationOverrides]);
 
-    // Load source model (with animations)
     const { scene: sourceModel } = useLoader(GLTFLoader, '/models/rigga4.glb');
 
     const sourceSkeleton = useMemo(() => {

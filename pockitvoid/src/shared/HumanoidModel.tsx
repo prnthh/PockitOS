@@ -3,7 +3,7 @@ import { useFrame } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { SkeletonUtils } from "three-stdlib";
-import useAnimationState from "./useAnimationState";
+import useAnimationState from "./useAnimationStateBasic";
 
 const AnimatedModel = ({ model, animation = "idle", onClick, height = 1, animationOverrides, position = [0, 0, 0], scale = 1, rotation = [0, 0, 0], debug = false, retargetOptions, ...props }: {
     model: string; animation?: string, height?: number,
