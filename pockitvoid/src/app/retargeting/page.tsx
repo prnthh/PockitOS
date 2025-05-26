@@ -157,10 +157,6 @@ function RetargetedModels({ model = '/models/Soldier.glb', source = '/models/Mic
     return (
         <group ref={group}>
             <primitive object={models.target} />
-            <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-                <planeGeometry args={[50, 50]} />
-                <meshStandardMaterial color="#888" opacity={0.2} transparent />
-            </mesh>
         </group>
     );
 }
@@ -174,11 +170,27 @@ export default function Home() {
                     <hemisphereLight args={[0xe9c0a5, 0x0175ad, 5]} />
                     <directionalLight position={[2, 5, 2]} intensity={4} color={0xfff9ea} />
                     <Suspense fallback={null}>
-                        <RetargetedModels />
+                        <group position={[1, 0, 1]}>
+                            <RetargetedModels />
+                        </group>
+                        <group position={[-1, 0, 1]}>
+                            <RetargetedModels model="/models/rigga.glb" />
+                        </group>
+                        <group position={[-1, 0, -1]}>
+                            <RetargetedModels model="/models/rigga2.glb" />
+                        </group>
+                        <group position={[1, 0, -1]}>
+                            <RetargetedModels model="/models/Michelle.glb" />
+                        </group>
                     </Suspense>
+
+                    <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+                        <planeGeometry args={[50, 50]} />
+                        <meshStandardMaterial color="#888" opacity={0.2} transparent />
+                    </mesh>
                     <OrbitControls minDistance={3} maxDistance={12} target={[0, 1, 0]} maxPolarAngle={Math.PI / 2} />
                 </Canvas>
             </div>
-        </div>
+        </div >
     );
 }

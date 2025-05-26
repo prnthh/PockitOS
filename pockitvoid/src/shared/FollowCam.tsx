@@ -12,8 +12,8 @@ export const FollowCam = ({
     cameraSpeed = 0.1
 }: {
     height: number,
-    cameraOffset: Vector3,
-    targetOffset: Vector3,
+    cameraOffset?: Vector3,
+    targetOffset?: Vector3,
     verticalRotation?: React.RefObject<number>
     cameraSpeed?: number
 }) => {
