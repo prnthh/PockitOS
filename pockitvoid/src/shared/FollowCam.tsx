@@ -9,13 +9,15 @@ export const FollowCam = ({
     cameraOffset = new Vector3(0, -0.3, -3),
     targetOffset = new Vector3(0, 0.3, 3),
     verticalRotation,
-    cameraSpeed = 0.1
+    cameraSpeed = 0.1,
+    debug = false
 }: {
     height: number,
     cameraOffset?: Vector3,
     targetOffset?: Vector3,
     verticalRotation?: React.RefObject<number>
     cameraSpeed?: number
+    debug?: boolean
 }) => {
 
     const cameraTarget = useRef<Group>(null);
@@ -49,14 +51,14 @@ export const FollowCam = ({
 
     return <>
         <group ref={cameraTarget} position-z={1.5} position-y={height * 0.8}>
-            <Box args={[0.1, 0.1, 0.1]}>
+            {debug && <Box args={[0.1, 0.1, 0.1]}>
                 <meshBasicMaterial wireframe color="red" />
-            </Box>
+            </Box>}
         </group>
         <group ref={cameraPosition} position-y={height * 0.8} position-z={-1}>
-            <Box args={[0.1, 0.1, 0.1]}>
+            {debug && <Box args={[0.1, 0.1, 0.1]}>
                 <meshBasicMaterial wireframe color="blue" />
-            </Box>
+            </Box>}
         </group>
     </>
 
