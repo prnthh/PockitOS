@@ -2,7 +2,7 @@
 
 import { Canvas } from "@react-three/fiber";
 import { Physics, RigidBody } from "@react-three/rapier";
-import { OrbitControls } from "@react-three/drei";
+import { Box, OrbitControls } from "@react-three/drei";
 import Ped from "./ped/ped";
 import { useState } from "react";
 import MovableTarget from "@/shared/MovableTarget";
@@ -15,7 +15,9 @@ export default function Home() {
         <div className="items-center justify-items-center min-h-screen">
             <div className="w-full" style={{ height: "100vh" }}>
                 <Canvas shadows>
-                    <MovableTarget position={target} setPosition={setTarget} />
+                    <Box position={target} args={[0.1, 0.1, 0.1]} castShadow>
+                        <meshBasicMaterial wireframe color="red" />
+                    </Box>
                     <Physics>
                         <Ped modelUrl={'/models/rigga.glb'} position={target} />
                         <Terrain onClick={(coords: number[]) => {
