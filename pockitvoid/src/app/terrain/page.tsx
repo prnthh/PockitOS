@@ -3,10 +3,9 @@
 import { Canvas } from "@react-three/fiber";
 import { Physics, RigidBody } from "@react-three/rapier";
 import { Box, OrbitControls } from "@react-three/drei";
-import Ped from "./ped/ped";
 import { useState } from "react";
 import MovableTarget from "@/shared/MovableTarget";
-import { Terrain } from "@/app/terrain/terrain";
+import { Terrain } from "./terrain";
 
 export default function Home() {
     const [target, setTarget] = useState<[number, number, number] | undefined>()
@@ -19,7 +18,6 @@ export default function Home() {
                         <meshBasicMaterial wireframe color="red" />
                     </Box>
                     <Physics>
-                        <Ped modelUrl={'/models/rigga.glb'} position={target} />
                         <Terrain onClick={(coords: number[]) => {
                             const [x = 0, y = 0, z = 0] = coords;
                             setTarget([x, y, z]);

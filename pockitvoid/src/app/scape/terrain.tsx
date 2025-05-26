@@ -4,7 +4,7 @@ import * as THREE from "three";
 // import { Tree } from "./Tree.tsx";
 
 export function Terrain({ onClick }: { onClick?: (coords: number[]) => void }) {
-    const width = 1000;
+    const width = 100;
     const height = 100;
     const widthSegments = width / 10;
     const heightSegments = height / 10;
