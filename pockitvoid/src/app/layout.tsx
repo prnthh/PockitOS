@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 const allExperiments = [
-  'barebones', 'ground', 'lighting', 'shadowmap', 'car', 'modelcar', 'interior', 'thirdperson/wawa', 'thirdperson/shouldercam', 'thirdperson/isocam', 'thirdperson/animations', 'nameaddressing', 'playerswitchtonpcandopendoor', 'npclifesimulator', 'npc', 'scape', 'retargeting', 'retargeting-basic', 'xr', 'miladychess', 'miladysurfer', 'playground',
+  'barebones', 'ground', 'lighting', 'shadowmap', 'car', 'modelcar', 'interior', 'controllers/wawa', 'controllers/shouldercam', 'controllers/click', 'controllers/isocam', 'controllers/animations', 'nameaddressing', 'playerswitchtonpcandopendoor', 'npclifesimulator', 'npc', 'scape', 'retargeting', 'retargeting-basic', 'xr', 'miladychess', 'miladysurfer', 'playground',
 ]
 
 

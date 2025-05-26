@@ -20,12 +20,9 @@ const usePhysicsWalk = (
 
     useEffect(() => {
         const newTarget = position;
-
-        // Update target and reset state if it changes
         if (JSON.stringify(target.current) !== JSON.stringify(newTarget)) {
             target.current = newTarget;
             targetReached.current = false;
-
             if (!newTarget) {
                 setAnimation("idle");
                 if (rigidBodyRef.current) {
@@ -35,27 +32,18 @@ const usePhysicsWalk = (
         }
     }, [position, rigidBodyRef]);
 
-    const getGroundNormal = (position: THREE.Vector3): THREE.Vector3 => {
-        // Placeholder: always Y-up. Replace with actual ground normal logic if available.
-        return new THREE.Vector3(0, 1, 0);
-    };
+    const getGroundNormal = () => new THREE.Vector3(0, 1, 0);
 
-    useFrame((state, delta) => {
+    useFrame((_, delta) => {
         const rigidBody = rigidBodyRef.current;
         if (!rigidBody || !target.current || targetReached.current) return;
 
-        // Current position
         const pos = rigidBody.translation();
         const currentPos = new THREE.Vector3(pos.x, pos.y, pos.z);
-
-        // Target position
         const targetPos = new THREE.Vector3(target.current[0], target.current[1], target.current[2]);
-
-        // Direction in 3D
         const directionToTarget = targetPos.clone().sub(currentPos);
         const distance = directionToTarget.length();
 
-        // Check if target is reached
         if (distance <= IDLE_THRESHOLD) {
             rigidBody.setLinvel({ x: 0, y: rigidBody.linvel().y, z: 0 }, true);
             setAnimation("idle");
@@ -65,18 +53,12 @@ const usePhysicsWalk = (
             return;
         }
 
-        // Project direction onto ground plane
-        const groundNormal = getGroundNormal(currentPos);
+        const groundNormal = getGroundNormal();
         const projectedDir = directionToTarget.clone().projectOnPlane(groundNormal).normalize();
-
-        // Calculate rotation to face movement direction (flip direction)
-        const up = groundNormal;
-        // Flip the direction so the front faces the target
         const lookAt = currentPos.clone().sub(projectedDir);
-        const m = new THREE.Matrix4().lookAt(currentPos, lookAt, up);
+        const m = new THREE.Matrix4().lookAt(currentPos, lookAt, groundNormal);
         const targetQuat = new THREE.Quaternion().setFromRotationMatrix(m);
 
-        // Slerp current rotation toward target
         const currentRotation = rigidBody.rotation();
         const currentQuat = new THREE.Quaternion(
             currentRotation.x,
@@ -84,21 +66,27 @@ const usePhysicsWalk = (
             currentRotation.z,
             currentRotation.w
         );
-        currentQuat.slerp(targetQuat, ROTATION_SPEED * delta);
-        rigidBody.setRotation(currentQuat, true);
+        const t = ROTATION_SPEED * delta;
+        const rotatedQuat = currentQuat.clone().slerp(targetQuat, t);
+        rigidBody.setRotation(rotatedQuat, true);
 
-        // Move forward towards the target
-        // Choose speed based on distance (run if far, walk if close)
-        const speed = distance > RUN_DISTANCE ? RUN_SPEED : WALK_SPEED;
-        // Only move in XZ plane (ignore Y for velocity)
-        const velocity = projectedDir.clone().multiplyScalar(speed);
-        rigidBody.setLinvel(
-            { x: velocity.x, y: rigidBody.linvel().y, z: velocity.z },
-            true
-        );
+        const angleThreshold = THREE.MathUtils.degToRad(30);
+        const facingAngle = rotatedQuat.angleTo(targetQuat);
 
-        // Set animation based on movement
-        setAnimation(speed === RUN_SPEED ? "run" : "walk");
+        if (facingAngle < angleThreshold) {
+            const speed = distance > RUN_DISTANCE ? RUN_SPEED : WALK_SPEED;
+            const velocity = projectedDir.clone().multiplyScalar(speed);
+            rigidBody.setLinvel(
+                { x: velocity.x, y: rigidBody.linvel().y, z: velocity.z },
+                true
+            );
+            setAnimation(speed === RUN_SPEED ? "run" : "walk");
+        } else {
+            rigidBody.setLinvel(
+                { x: 0, y: rigidBody.linvel().y, z: 0 },
+                true
+            );
+        }
     });
 
     return {
