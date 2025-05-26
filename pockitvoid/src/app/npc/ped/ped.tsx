@@ -34,7 +34,7 @@ const Ped = memo(({ modelUrl, position, height = 0.95, roundHeight = 0.25 }: {
                 colliders={false}
                 linearDamping={0.5}
                 angularDamping={0.5}
-                enabledRotations={[false, true, false]}
+                enabledRotations={[false, false, false]}
             >
                 <CapsuleCollider args={[(height - (roundHeight * 1.9)) / 2, roundHeight]} position={[0, (height / 2), 0]} />
                 <AnimatedModel model={modelUrl} animation={animation}
