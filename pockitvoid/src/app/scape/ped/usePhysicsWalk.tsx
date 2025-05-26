@@ -87,7 +87,18 @@ const usePhysicsWalk = (
         currentQuat.slerp(targetQuat, ROTATION_SPEED * delta);
         rigidBody.setRotation(currentQuat, true);
 
-        setAnimation("idle"); // Always idle for now
+        // Move forward towards the target
+        // Choose speed based on distance (run if far, walk if close)
+        const speed = distance > RUN_DISTANCE ? RUN_SPEED : WALK_SPEED;
+        // Only move in XZ plane (ignore Y for velocity)
+        const velocity = projectedDir.clone().multiplyScalar(speed);
+        rigidBody.setLinvel(
+            { x: velocity.x, y: rigidBody.linvel().y, z: velocity.z },
+            true
+        );
+
+        // Set animation based on movement
+        setAnimation(speed === RUN_SPEED ? "run" : "walk");
     });
 
     return {
