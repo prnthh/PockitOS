@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { addMeshComponent } from './components/MeshComponent';
 
 // Component and GameObject types as defined above
 type ComponentType = 'transform' | 'renderer' | 'collider' | 'mesh';
@@ -21,21 +22,16 @@ interface ColliderData {
   size: [number, number, number];
 }
 
-interface MeshData {
-  path: string;
-}
-
 type ComponentData = {
   transform: TransformData;
   renderer: RendererData;
   collider: ColliderData;
-  mesh: MeshData;
 };
 
 type Components = {
   transform: TransformData;
 } & {
-  [K in Exclude<ComponentType, 'transform'>]?: ComponentData[K];
+  [K in Exclude<ComponentType, 'transform'>]?: K extends keyof ComponentData ? ComponentData[K] : never;
 };
 
 interface GameObject {
@@ -194,16 +190,12 @@ const useGameStore = create<GameState>((set, get) => ({
     set((state) => {
       const gameObject = state.gameObjects[id];
       if (!gameObject || componentType === 'transform') return state;
-      // Handle mesh default path
+      // Use mesh component registration function
       if (componentType === 'mesh') {
-        const meshData: MeshData = {
-          path: data?.path || '/models/rigga.glb',
-        };
-        const newComponents = { ...gameObject.components, mesh: meshData };
         return {
           gameObjects: {
             ...state.gameObjects,
-            [id]: { ...gameObject, components: newComponents },
+            [id]: addMeshComponent(gameObject, data),
           },
         };
       }

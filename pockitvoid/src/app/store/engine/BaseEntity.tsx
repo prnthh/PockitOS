@@ -1,6 +1,6 @@
 import React, { forwardRef, useImperativeHandle, useRef, useEffect } from "react";
 import { RigidBody } from "@react-three/rapier";
-import { useGLTF } from "@react-three/drei";
+import { MeshComponent } from "./components/MeshComponent";
 
 // Props: gameObject, onRefsAvailable
 const Entity = forwardRef(({ gameObject, onRefsAvailable }: any, ref) => {
@@ -28,25 +28,16 @@ const Entity = forwardRef(({ gameObject, onRefsAvailable }: any, ref) => {
         }
     }, [gameObject.id, onRefsAvailable, meshRef.current, rigidBodyRef.current]);
 
-    // For now, use a box mesh as before. You can extend this to use renderer/collider data.
-    const meshComponent = gameObject.components.mesh;
-    if (meshComponent && meshComponent.path) {
-        // Load and render GLTF model
-        const gltf = useGLTF(meshComponent.path);
-        const scene = (gltf && "scene" in gltf) ? gltf.scene : null;
-        return (
-            <RigidBody ref={rigidBodyRef}>
-                {scene && <primitive ref={meshRef} object={scene} />}
-            </RigidBody>
-        );
+    // --- Component pattern: render components if present ---
+    const components = [];
+    if (gameObject.components.mesh) {
+        components.push(<MeshComponent key="mesh" ref={meshRef} meshComponent={gameObject.components.mesh} />);
     }
-    // Fallback: box mesh
+    // Example for future: if (gameObject.components.followCam) { components.push(<FollowCamComponent ... />); }
+
     return (
         <RigidBody ref={rigidBodyRef}>
-            <mesh ref={meshRef}>
-                <boxGeometry args={[1, 1, 1]} />
-                <meshStandardMaterial color="orange" />
-            </mesh>
+            {components}
         </RigidBody>
     );
 });
