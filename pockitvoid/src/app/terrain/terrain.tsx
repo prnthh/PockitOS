@@ -1,20 +1,51 @@
 import { HeightfieldCollider, RigidBody } from "@react-three/rapier";
 import { useMemo } from "react";
 import * as THREE from "three";
+import { Instances, Instance } from "@react-three/drei";
 // import { Tree } from "./Tree.tsx";
+
+// Component to render small boxes at each vertex using instancing
+function VertexVisualizer({ geometry }: { geometry: THREE.PlaneGeometry }) {
+    const vertices = useMemo(() => {
+        const positions = [];
+        const positionArray = geometry.attributes.position.array;
+
+        for (let i = 0; i < positionArray.length; i += 3) {
+            positions.push(new THREE.Vector3(
+                positionArray[i],
+                positionArray[i + 1],
+                positionArray[i + 2]
+            ));
+        }
+
+        return positions;
+    }, [geometry]);
+
+    return (
+        <Instances limit={vertices.length} castShadow>
+            <boxGeometry args={[0.2, 0.2, 0.2]} />
+            <meshStandardMaterial color="red" />
+
+            {vertices.map((vertex, i) => (
+                <Instance key={i} position={vertex} />
+            ))}
+        </Instances>
+    );
+}
 
 export function Terrain({ onClick }: { onClick?: (coords: number[]) => void }) {
     const width = 100;
     const height = 100;
-    const widthSegments = width / 10;
-    const heightSegments = height / 10;
+    const tileSize = 2; // New tile size
+    const widthSegments = Math.floor(width / tileSize);
+    const heightSegments = Math.floor(height / tileSize);
 
     const heightField = useMemo(() => {
         const heightField = Array((widthSegments + 1) * (heightSegments + 1)).fill(0);
 
         for (let h = 0; h < heightSegments + 1; h++) {
             for (let w = 0; w < widthSegments + 1; w++) {
-                const i = h * widthSegments + w;
+                const i = h * (widthSegments + 1) + w; // Fix array indexing
                 heightField[i] = ((h + w) % 5) * Math.random() * 0.3 * 3;
             }
         }
@@ -62,13 +93,6 @@ export function Terrain({ onClick }: { onClick?: (coords: number[]) => void }) {
 
     return (
         <>
-            {/* {treePositions.map((_, i) => (
-        <Tree
-          key={i}
-          position={treePositions[i] as [number, number, number]}
-          scale={treeScales[i] as [number, number, number]}
-        />
-      ))} */}
             <RigidBody colliders={false} position={[0, 0, 0]}>
                 <mesh
                     geometry={geometry}
@@ -98,6 +122,9 @@ export function Terrain({ onClick }: { onClick?: (coords: number[]) => void }) {
                     ]}
                 />
             </RigidBody>
+
+            {/* Add the vertex visualizer */}
+            <VertexVisualizer geometry={geometry} />
         </>
     );
 }

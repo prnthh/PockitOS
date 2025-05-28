@@ -19,7 +19,7 @@ export const metadata: Metadata = {
 };
 
 const allExperiments = [
-  'barebones', 'ground', 'terrain', 'lighting', 'shadowmap', 'particles', 'water',
+  'barebones', 'ground', 'terrain', 'terrain2', 'lighting', 'shadowmap', 'particles', 'webgpu',
   'car', 'modelcar', 'interior',
   'controllers/wawa', 'controllers/shouldercam', 'controllers/click', 'controllers/isocam', 'controllers/animations',
   'events', 'store',

@@ -2,12 +2,13 @@
 
 import { Canvas } from "@react-three/fiber";
 import { Physics, RigidBody } from "@react-three/rapier";
-import { Box, OrbitControls, PerspectiveCamera } from "@react-three/drei";
+import { Box, OrbitControls } from "@react-three/drei";
 import { useState } from "react";
 import MovableTarget from "@/shared/MovableTarget";
+import { Terrain } from "./terrain";
 import Ped from "../controllers/click/ped/ped";
 import { ShadowLight } from "../shadowmap/ShadowLight";
-import { Terrain } from "./terrain";
+import { WorldTerrain } from "./WorldTerrain";
 
 export default function Home() {
     const [target, setTarget] = useState<[number, number, number] | undefined>()
@@ -24,8 +25,6 @@ export default function Home() {
                             setTarget([point[0], point[1] + 0.05, point[2]]);
                         }} />
                         <ShadowLight />
-
-                        <PerspectiveCamera makeDefault position={[0, 5, 10]} fov={50} />
 
                         <ambientLight intensity={0.5} />
                         <OrbitControls makeDefault />
