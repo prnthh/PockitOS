@@ -47,7 +47,8 @@ const AnimatedModel = ({ model, animation = "idle", onClick, height = 1, animati
 
     return (
         <group ref={groupRef} {...props} position={position} onClick={(e) => {
-            if (onClick) onClick();
+            e.stopPropagation();
+            if (onClick) onClick(e);
         }}>
             {debug && <Box args={[0.3, scale, 0.3]} position={[0, 1 / 2 * scale, 0]}>
                 <meshBasicMaterial wireframe color="red" />

@@ -10,7 +10,8 @@ export const OrbitCam = ({
     minAzimuth = -Infinity,
     maxAzimuth = Infinity,
     cameraSpeed = 0.03, // Slower default speed
-    debug = false
+    debug = false,
+    smoothing = 0.1 // New prop for smoothing
 }: {
     radius?: number,
     minPolar?: number,
@@ -18,7 +19,8 @@ export const OrbitCam = ({
     minAzimuth?: number,
     maxAzimuth?: number,
     cameraSpeed?: number,
-    debug?: boolean
+    debug?: boolean,
+    smoothing?: number // Add smoothing prop
 }) => {
     const azimuth = useRef(Math.PI / 2); // horizontal angle
     const polar = useRef(Math.PI / 2);   // vertical angle
@@ -99,8 +101,13 @@ export const OrbitCam = ({
         const y = r * Math.cos(polar.current);
         const z = r * Math.sin(polar.current) * Math.cos(azimuth.current);
         const desired = new Vector3(x, y, z).add(cameraLookAt.current);
-        // No smoothing: move directly, but slow by scaling azimuth/polar delta
-        camera.position.copy(desired);
+        if (dragging.current) {
+            // Instantly set camera position while dragging
+            camera.position.copy(desired);
+        } else {
+            // Smoothly interpolate camera position when not dragging
+            camera.position.lerp(desired, smoothing);
+        }
         camera.lookAt(cameraLookAt.current);
     });
 
