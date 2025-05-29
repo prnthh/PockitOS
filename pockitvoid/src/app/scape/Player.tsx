@@ -93,7 +93,7 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, c
     const targetPos = targetPosRef.current;
     const currentPos = group.position;
     // Move at a constant speed (units per second)
-    const speed = 0.8; // adjust as needed
+    const speed = 1.3; // adjust as needed
     const dist = currentPos.distanceTo(targetPos);
     if (dist > 0.001) {
       const direction = new THREE.Vector3().subVectors(targetPos, currentPos).normalize();
