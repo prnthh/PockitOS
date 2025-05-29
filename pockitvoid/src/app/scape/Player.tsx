@@ -18,10 +18,11 @@ const tweenGroup = new Group(); // ✅ your own tween group
 
 const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, color = "orange", onClick }, ref) => {
   const groupRef = useRef<THREE.Group>(null);
-  const tweenRef = useRef<Tween<THREE.Vector3> | null>(null);
   const rotationTweenRef = useRef<Tween<{ y: number }> | null>(null);
   const [animation, setAnimation] = useState("idle");
   const lastTweenedPosRef = useRef<THREE.Vector3>(new THREE.Vector3(...position));
+  const targetPosRef = useRef<THREE.Vector3>(new THREE.Vector3(...position));
+  const movingRef = useRef(false);
 
   // Forward the ref
   useEffect(() => {
@@ -45,68 +46,68 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, c
     if (groupRef.current) {
       groupRef.current.position.set(...position);
       lastTweenedPosRef.current.copy(groupRef.current.position); // sync
+      targetPosRef.current.copy(groupRef.current.position);
       groupRef.current.rotation.y = 0;
     }
   }, []);
 
-  // Tween position and rotation on position change
+  // Update target position on prop change
   useEffect(() => {
     if (!groupRef.current) return;
     const group = groupRef.current;
-    // Use lastTweenedPosRef as the true current position
-    const currentPos = lastTweenedPosRef.current.clone();
+    const currentPos = group.position.clone();
     const targetPos = new THREE.Vector3(...position);
-    if (currentPos.equals(targetPos)) return;
-
-    setAnimation("walk"); // Switch to walk when moving
-
-    // --- ROTATION ---
-    const currentYaw = group.rotation.y;
-    const targetYaw = getTargetYaw(currentPos, targetPos);
-    // Normalize shortest angle
-    let deltaYaw = targetYaw - currentYaw;
-    if (deltaYaw > Math.PI) deltaYaw -= 2 * Math.PI;
-    if (deltaYaw < -Math.PI) deltaYaw += 2 * Math.PI;
-    const finalYaw = currentYaw + deltaYaw;
-
-    // Stop existing tweens if needed
-    tweenRef.current?.stop();
-    rotationTweenRef.current?.stop();
-
-    // Animate rotation
-    const rotObj = { y: currentYaw };
-    const rotationTween = new Tween(rotObj)
-      .to({ y: finalYaw }, 200)
-      .easing(Easing.Linear.None)
-      .onUpdate(() => {
-        if (group) group.rotation.y = rotObj.y;
-      });
-    tweenGroup.add(rotationTween);
-    rotationTween.start();
-    rotationTweenRef.current = rotationTween;
-
-    // Animate position using a separate vector
-    const distance = currentPos.distanceTo(targetPos);
-    const duration = distance * 0.7 * 1000; // 0.66 seconds per tile (unit)
-    const tweenedPos = currentPos.clone();
-    const tween = new Tween(tweenedPos)
-      .to(targetPos, duration)
-      .easing(Easing.Linear.None)
-      .onUpdate(() => {
-        if (group) group.position.copy(tweenedPos);
-        lastTweenedPosRef.current.copy(tweenedPos); // always update
-      })
-      .onComplete(() => {
-        setAnimation("idle"); // Switch to idle when done moving
-      });
-    tweenGroup.add(tween);
-    tween.start();
-    tweenRef.current = tween;
+    if (!currentPos.equals(targetPos)) {
+      setAnimation("walk");
+      targetPosRef.current.copy(targetPos);
+      movingRef.current = true;
+      // --- ROTATION ---
+      const currentYaw = group.rotation.y;
+      const targetYaw = getTargetYaw(currentPos, targetPos);
+      let deltaYaw = targetYaw - currentYaw;
+      if (deltaYaw > Math.PI) deltaYaw -= 2 * Math.PI;
+      if (deltaYaw < -Math.PI) deltaYaw += 2 * Math.PI;
+      const finalYaw = currentYaw + deltaYaw;
+      rotationTweenRef.current?.stop();
+      const rotObj = { y: currentYaw };
+      const rotationTween = new Tween(rotObj)
+        .to({ y: finalYaw }, 200)
+        .easing(Easing.Linear.None)
+        .onUpdate(() => {
+          if (group) group.rotation.y = rotObj.y;
+        });
+      tweenGroup.add(rotationTween);
+      rotationTween.start();
+      rotationTweenRef.current = rotationTween;
+    } else {
+      // If not moving, ensure animation is idle
+      if (animation !== "idle") setAnimation("idle");
+      movingRef.current = false;
+    }
   }, [position]);
 
   useFrame((_, delta) => {
-    // ✅ drive your own tween group
     tweenGroup.update(performance.now());
+    if (!groupRef.current) return;
+    const group = groupRef.current;
+    const targetPos = targetPosRef.current;
+    const currentPos = group.position;
+    // Move at a constant speed (units per second)
+    const speed = 0.8; // adjust as needed
+    const dist = currentPos.distanceTo(targetPos);
+    if (dist > 0.001) {
+      const direction = new THREE.Vector3().subVectors(targetPos, currentPos).normalize();
+      const moveDist = Math.min(speed * delta, dist);
+      currentPos.addScaledVector(direction, moveDist);
+      lastTweenedPosRef.current.copy(currentPos);
+      if (dist <= 0.01) {
+        group.position.copy(targetPos);
+        if (animation !== "idle") setAnimation("idle");
+        movingRef.current = false;
+      } else {
+        if (animation !== "walk") setAnimation("walk");
+      }
+    }
   });
 
   return (
@@ -121,7 +122,7 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, c
           onClick={onClick}
           scale={0.8}
         />
-        {color == 'orange' && <OrbitCam />}
+        {color == 'orange' && <OrbitCam maxPolar={Math.PI / 2.2} />}
       </group>
       <Html center position={[position[0], position[1] + .7, position[2]]} style={{ pointerEvents: "none" }}>
         <div className="text-white bg-black p-1 rounded">

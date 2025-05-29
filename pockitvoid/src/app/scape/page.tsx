@@ -49,6 +49,7 @@ export default function Home() {
         <div className="items-center justify-items-center min-h-screen">
             <div className="w-full" style={{ height: "100vh" }}>
                 <Canvas>
+                    {/* todo optimise tile drawing so it doesnt refresh every tick */}
                     {FakeServer.getTilemap().map((row: number[], i: number) =>
                         row.map((tile: number, j: number) => (
                             <Tile
@@ -62,6 +63,7 @@ export default function Home() {
                     {Object.entries(allPlayers).map(([id, state]) => (
                         <group key={id}>
                             <Player
+                                key={id}
                                 health={state.health}
                                 position={[(state.pos[0] - 4.5) * TILE_SIZE, -1.5 * TILE_SIZE, (state.pos[1] - 4.5) * TILE_SIZE]}
                                 color={id === playerId ? "orange" : "blue"}

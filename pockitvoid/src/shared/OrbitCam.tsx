@@ -101,13 +101,8 @@ export const OrbitCam = ({
         const y = r * Math.cos(polar.current);
         const z = r * Math.sin(polar.current) * Math.cos(azimuth.current);
         const desired = new Vector3(x, y, z).add(cameraLookAt.current);
-        if (dragging.current) {
-            // Instantly set camera position while dragging
-            camera.position.copy(desired);
-        } else {
-            // Smoothly interpolate camera position when not dragging
-            camera.position.lerp(desired, smoothing);
-        }
+        // Smoothly interpolate camera position
+        camera.position.lerp(desired, smoothing);
         camera.lookAt(cameraLookAt.current);
     });
 
