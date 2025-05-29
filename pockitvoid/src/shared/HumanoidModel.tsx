@@ -11,7 +11,7 @@ const AnimatedModel = ({ model, animation = "idle", onClick, height = 1, animati
     position?: [number, number, number],
     scale?: number,
     rotation?: [number, number, number],
-    debug?: boolean, onClick?: () => void,
+    debug?: boolean, onClick?: (e?: any) => void,
     retargetOptions?: { boneMap?: Record<string, string>, preserveHipPosition?: boolean }
 }) => {
     const groupRef = useRef<THREE.Group>(null);
