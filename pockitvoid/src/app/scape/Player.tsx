@@ -1,22 +1,23 @@
 import { FollowCam } from "@/shared/FollowCam";
 import { OrbitCam } from "@/shared/OrbitCam";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import AnimatedModel from "@/shared/HumanoidModel";
 import * as THREE from "three";
-import { Tween, Group, Easing } from "@tweenjs/tween.js";
 import { useFrame } from "@react-three/fiber";
+import { Html } from "@react-three/drei";
 
 interface PlayerProps {
   position: [number, number, number];
+  health?: number;
   color?: string;
   onClick?: (e: any) => void;
 }
 
-const tweenGroup = new Group(); // ✅ your own tween group
-
-export default function Player({ position, color = "orange", onClick }: PlayerProps) {
+export default function Player({ position, health = 100, color = "orange", onClick }: PlayerProps) {
   const groupRef = useRef<THREE.Group>(null);
-  const tweenRef = useRef<Tween<THREE.Vector3> | null>(null);
+  const [isMoving, setIsMoving] = useState(false);
+  const lastYawRef = useRef(0);
+  const rotLerpSpeed = 5; // higher is snappier, 20~50 for <100ms
 
   // Set initial position on mount
   useEffect(() => {
@@ -25,31 +26,35 @@ export default function Player({ position, color = "orange", onClick }: PlayerPr
     }
   }, []);
 
-  // Tween position on position change
-  useEffect(() => {
-    if (!groupRef.current) return;
-
-    const group = groupRef.current;
-    const currentPos = group.position;
-    const targetPos = new THREE.Vector3(...position);
-
-    if (currentPos.equals(targetPos)) return;
-
-    // Stop existing tween if needed
-    tweenRef.current?.stop();
-
-    const tween = new Tween(currentPos)
-      .to(targetPos, 600)
-      .easing(Easing.Quadratic.Out);
-
-    tweenGroup.add(tween); // ✅ add to our tween group
-    tween.start();
-    tweenRef.current = tween;
-  }, [position]);
-
+  // Lerp position and rotate to face direction in useFrame
   useFrame((_, delta) => {
-    // ✅ drive your own tween group
-    tweenGroup.update(performance.now());
+    if (!groupRef.current) return;
+    const current = groupRef.current.position;
+    const target = new THREE.Vector3(...position);
+    const speed = 1; // units per second
+    const toTarget = target.clone().sub(current);
+    const distance = toTarget.length();
+    if (distance > 0.01) {
+      setIsMoving(true);
+      const move = Math.min(speed * delta, distance);
+      const dir = toTarget.clone().normalize();
+      current.add(dir.multiplyScalar(move));
+      // --- Rotation logic ---
+      const targetYaw = Math.atan2(dir.x, dir.z);
+      let currentYaw = groupRef.current.rotation.y;
+      // Shortest angle
+      let deltaYaw = targetYaw - currentYaw;
+      if (deltaYaw > Math.PI) deltaYaw -= 2 * Math.PI;
+      if (deltaYaw < -Math.PI) deltaYaw += 2 * Math.PI;
+      currentYaw += deltaYaw * Math.min(1, rotLerpSpeed * delta); // snappy
+      groupRef.current.rotation.y = currentYaw;
+      lastYawRef.current = currentYaw;
+    } else {
+      current.copy(target);
+      setIsMoving(false);
+      // Snap to last yaw
+      groupRef.current.rotation.y = lastYawRef.current;
+    }
   });
 
   return (
@@ -58,13 +63,17 @@ export default function Player({ position, color = "orange", onClick }: PlayerPr
         position={[0, -0.3, 0]}
         debug={true}
         model={"/models/rigga.glb"}
-        animation={"idle"}
+        animation={isMoving ? "walk" : "idle"}
         height={0.95}
         onClick={onClick}
         scale={0.8}
       />
-      <mesh position={position} scale={[0.8, 0.8, 0.8]} />
       {color === "orange" && <OrbitCam />}
+      <Html center position={[0, 0.8, 0]}>
+        <div className="text-white bg-black p-1 rounded">
+          {`HP:${health ?? 0}`}
+        </div>
+      </Html>
     </group>
   );
 }

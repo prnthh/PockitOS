@@ -62,6 +62,7 @@ export default function Home() {
                     {Object.entries(allPlayers).map(([id, state]) => (
                         <group key={id}>
                             <Player
+                                health={state.health}
                                 position={[(state.pos[0] - 4.5) * TILE_SIZE, -1.5 * TILE_SIZE, (state.pos[1] - 4.5) * TILE_SIZE]}
                                 color={id === playerId ? "orange" : "blue"}
                                 onClick={e => {
@@ -69,12 +70,6 @@ export default function Home() {
                                     handlePlayerClick(id);
                                 }}
                             />
-                            {/* Show health above player */}
-                            <Html position={[(state.pos[0] - 4.5) * TILE_SIZE, 0, (state.pos[1] - 4.5) * TILE_SIZE]}>
-                                <div className="text-white bg-black p-1 rounded">
-                                    {`HP:${state.health ?? 0}`}
-                                </div>
-                            </Html>
                         </group>
                     ))}
                     {/* Render drops */}
