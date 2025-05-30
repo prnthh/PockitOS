@@ -242,3 +242,10 @@ export function Terrain({ onClick }: { onClick?: (coords: number[]) => void }) {
         </>
     );
 }
+
+// Terrain engine
+// uses height-map images (grey-scale)
+// Terrain is built in a WebWorker in tiles, only visible tiles are built so the size of the terrain has very little impact on the load times
+// Only visible terrain tiles are being rendered, so run-time performance is independent of the terrain size
+// Automatically built ambient occlusion map
+// Ray-casting API

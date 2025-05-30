@@ -8,7 +8,6 @@ import MovableTarget from "@/shared/MovableTarget";
 import { Terrain } from "./terrain";
 import Ped from "../controllers/click/ped/ped";
 import { ShadowLight } from "../shadowmap/ShadowLight";
-import { WorldTerrain } from "./WorldTerrain";
 
 export default function Home() {
     const [target, setTarget] = useState<[number, number, number] | undefined>()

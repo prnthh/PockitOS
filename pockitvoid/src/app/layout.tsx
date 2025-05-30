@@ -20,10 +20,9 @@ export const metadata: Metadata = {
 
 const allExperiments = [
   'barebones', 'ground', 'terrain', 'terrain2', 'lighting', 'shadowmap', 'particles', 'webgpu',
-  'car/simple', 'car/model', 'car/road', 'interior', 'ragdoll',
+  'car/simple', 'car/model', 'car/road', 'interior', 'ragdoll', 'kick',
   'controllers/wawa', 'controllers/shouldercam', 'controllers/click', 'controllers/isocam', 'controllers/animations',
-  'events', 'store',
-  'playerswitchtonpcandopendoor', 'npclifesimulator',
+  'events', 'store', 'crawler',
   'npc', 'scape',
   'retargeting', 'retargeting-basic',
   'xr', 'miladychess', 'miladysurfer',

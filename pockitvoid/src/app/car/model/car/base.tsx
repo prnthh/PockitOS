@@ -5,8 +5,8 @@ import { CuboidCollider, RapierRigidBody, RigidBody, useRapier } from '@react-th
 import { RefObject, useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { WheelInfo, useVehicleController } from './vehicleController'
-import { useControlScheme } from '../../../shared/ControlsProvider' // added
 import { FollowCam } from '@/shared/FollowCam'
+import { useControlScheme } from '@/shared/ControlsProvider'
 
 const spawn = {
     position: [-7, 2, -130] as THREE.Vector3Tuple,
