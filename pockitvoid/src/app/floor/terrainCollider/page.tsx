@@ -2,7 +2,7 @@
 
 import { Canvas } from "@react-three/fiber";
 import { Physics, RigidBody } from "@react-three/rapier";
-import { Box, OrbitControls } from "@react-three/drei";
+import { Box, OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { useState } from "react";
 import MovableTarget from "@/shared/MovableTarget";
 import { Terrain } from "./terrain";
@@ -27,6 +27,7 @@ export default function Home() {
                         <directionalLight position={[10, 10, 10]} castShadow />
                         <OrbitControls makeDefault />
                     </Physics>
+                    <PerspectiveCamera makeDefault position={[0, 20, 30]} fov={50} />
                 </Canvas>
             </div>
         </div >

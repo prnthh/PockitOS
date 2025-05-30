@@ -6,7 +6,7 @@ import { Box, OrbitControls } from "@react-three/drei";
 import Ped from "./ped/ped";
 import { useState } from "react";
 import MovableTarget from "@/shared/MovableTarget";
-import { Terrain } from "@/app/terrain/terrain";
+import { Terrain } from "@/app/floor/terrainCollider/terrain";
 
 export default function Home() {
     const [target, setTarget] = useState<[number, number, number] | undefined>()

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { SkeletonUtils } from "three-stdlib";
 
-const Lightsource = ({ model, position = [0, 0, 0] }: { model: string, position?: [number, number, number] }) => {
+const Lightsource = ({ model, position = [0, 0, 0], rotation }: { model: string, position?: [number, number, number], rotation?: [number, number, number] }) => {
     // const person = useSelector((state: RootState) => selectPersonById(state, id));
 
     const { scene, animations } = useGLTF(model);
@@ -52,8 +52,9 @@ const Lightsource = ({ model, position = [0, 0, 0] }: { model: string, position?
             ref={rigidBodyRef}
             type="fixed"
             position={position}
+            rotation={rotation}
         >
-            <primitive object={clonedScene} />
+            <primitive object={clonedScene} scale={1} />
         </RigidBody >
     );
 }

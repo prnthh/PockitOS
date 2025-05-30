@@ -19,6 +19,8 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "^0.176.0",
+    "three-csm": "^4.2.1",
+    "three-mesh-bvh": "^0.8.0",
     "xml2js": "^0.6.2"
   },
   "devDependencies": {

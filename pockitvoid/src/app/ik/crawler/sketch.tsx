@@ -45,8 +45,8 @@ import {
     bone,
     fabrikFixedIterations,
 } from './fabrik';
-import WebGPUCanvas from '../webgpu/WebGPUCanvas';
 import { useControlScheme } from '@/shared/ControlsProvider';
+import WebGPUCanvas from '@/app/webgpu/WebGPUCanvas';
 
 type EntityType = {
     crawler: CrawlerState;
