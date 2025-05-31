@@ -1,79 +1,108 @@
 import { useTexture } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
-import TWEEN, { Tween } from '@tweenjs/tween.js'
+import { Tween, Group as TweenGroup, Easing } from '@tweenjs/tween.js'
 import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 
+const tweenGroup = new TweenGroup()
+
 function Particle({
-    startPosition,
+    emitterPosition,
     size,
     range,
     particle,
     randomRotation,
     scaleFactor,
+    initialDelay = 0,
+    lifetime = 1000, // default lifetime in ms
     ...props
 }: {
-    startPosition: THREE.Vector3
+    emitterPosition: THREE.Vector3
     size: number
     range: number
     particle: string
     randomRotation: boolean
     scaleFactor: number
+    initialDelay?: number
+    lifetime?: number
 }) {
     const ref = useRef<THREE.Sprite>(null)
-    const texref = useRef<THREE.SpriteMaterial>(null)
-    const startPositionRef = useRef(startPosition)
-    const texture = useTexture(`/textures/${particle}.png`)
-
+    const texture = useTexture(`${particle}`)
+    // Add a ref to always have the latest emitterPosition
+    const emitterPositionRef = useRef(emitterPosition)
     useEffect(() => {
-        startPositionRef.current = startPosition
-    }, [startPosition])
-
-    useEffect(() => {
-        if (!ref.current) return
-        doMovement()
-    }, [])
+        emitterPositionRef.current = emitterPosition
+    }, [emitterPosition])
 
     function doMovement() {
         if (!ref.current) return
-        ref.current.scale.set(size, size, size)
-        ref.current.position.copy(getRandomisedPosition(startPositionRef.current, range)) // Reset to the current start position
-        ref.current.material.opacity = 0.2
+        // Start bigger and denser at the bottom
+        const initialScale = size * 0.7
+        ref.current.scale.set(initialScale, initialScale, initialScale)
+        // Always use the latest emitterPosition prop via ref
+        ref.current.position.copy(getRandomisedPosition(emitterPositionRef.current, range))
+        ref.current.material.opacity = 0.7
+        const startRot = randomRotation ? Math.random() * Math.PI * 2 : 0
+        ref.current.rotation.z = startRot
 
-        const randomDuration = Math.random() * 2000 + 4000
-        new Tween(ref.current.position)
+        const randomDuration = lifetime + (Math.random() - 0.5) * 500
+        const startMatRot = Math.random() * Math.PI * 2
+        ref.current.material.rotation = startMatRot
+        const endMatRot = startMatRot + (Math.random() - 0.5) * Math.PI * 2
+
+        // Main animation tweens with delay chained in
+        new Tween(ref.current.position, tweenGroup)
             .to({ y: ref.current.position.y + 5 }, randomDuration)
+            .delay(initialDelay)
+            .easing(Easing.Linear.None)
+            .onComplete(() => doMovement())
             .start()
-            .onComplete(doMovement)
-        new Tween(ref.current.scale)
+        new Tween(ref.current.scale, tweenGroup)
             .to(
                 { x: size * scaleFactor, y: size * scaleFactor, z: size * scaleFactor },
                 randomDuration,
             )
+            .delay(initialDelay)
+            .easing(Easing.Linear.None)
             .start()
-        new Tween(ref.current.material).to({ opacity: 0 }, randomDuration).start()
-
-        if (randomRotation && texref.current) {
-            texref.current.rotation = Math.random() * Math.PI * 2
-            new Tween(texref.current)
-                .to({ rotation: Math.random() * Math.PI * 2 }, randomDuration * 3)
-                .start()
-        }
+        new Tween(ref.current.material, tweenGroup)
+            .to({ opacity: 0 }, randomDuration)
+            .delay(initialDelay)
+            .easing(Easing.Linear.None)
+            .start()
+        new Tween(ref.current.material, tweenGroup)
+            .to({ rotation: endMatRot }, randomDuration)
+            .delay(initialDelay)
+            .easing(Easing.Linear.None)
+            .start()
     }
 
+    useEffect(() => {
+        if (!ref.current) return
+        // Set initial position and scale immediately to avoid showing at origin
+        ref.current.position.copy(getRandomisedPosition(emitterPositionRef.current, range))
+        const initialScale = size * 0.7
+        ref.current.scale.set(initialScale, initialScale, initialScale)
+        ref.current.material.opacity = 0.7
+        doMovement()
+        // No timeout or dummy tween needed, all handled by animation chain
+    }, [])
+
+    useFrame(() => {
+        tweenGroup.update(performance.now())
+    })
+
     return (
-        <sprite ref={ref}>
+        <sprite ref={ref} {...props}>
             <spriteMaterial
-                ref={texref}
                 map={texture}
                 depthWrite={false}
-                rotation={randomRotation ? Math.random() * Math.PI * 2 : undefined}
             />
         </sprite>
     )
 }
 
-function getRandomisedPosition(position: THREE.Vector3, range = 1.5) {
+function getRandomisedPosition(position: THREE.Vector3, range = 0.7) {
     return new THREE.Vector3(
         position.x + rand11() * range,
         position.y + rand11() * range,
@@ -83,16 +112,16 @@ function getRandomisedPosition(position: THREE.Vector3, range = 1.5) {
 
 const rand11 = () => Math.random() * 2.0 - 1.0
 
-const duration = 5000
-
 const Smoke = ({
     count,
     size = 2,
-    range = 2,
+    range = 0.7,
     emitterPosition = new THREE.Vector3(),
-    particle = 'smoke',
+    particle = '/textures/smoke.png',
     randomRotation = true,
     scaleFactor = 5,
+    debug = false,
+    lifetime = 5000,
 }: {
     count: number
     size?: number
@@ -101,39 +130,48 @@ const Smoke = ({
     particle?: string
     randomRotation?: boolean
     scaleFactor?: number
+    debug?: boolean
+    lifetime?: number
 }) => {
-    const [particleCount, setParticleCount] = useState(0)
-    const countRef = useRef<number>(0)
+    // Gradually increase the number of active particles
+    const [activeCount, setActiveCount] = useState(0)
     useEffect(() => {
-        countRef.current = particleCount
-    }, [particleCount])
-
-    useFrame(() => {
-        TWEEN.update()
-    })
-
-    useEffect(() => {
+        if (activeCount >= count) return
         const interval = setInterval(() => {
-            if (countRef.current === undefined) return
-            if (countRef.current < count) setParticleCount((prev) => prev + 1)
-            else clearInterval(interval)
-        }, duration / count)
+            setActiveCount((prev) => {
+                if (prev < count) return prev + 1
+                clearInterval(interval)
+                return prev
+            })
+        }, 300) // Increased interval for slower particle addition
         return () => clearInterval(interval)
-    }, [])
+    }, [count, activeCount])
 
     return (
-        <group
-        // position={position}
-        >
-            {Array.from({ length: particleCount }).map((_, i) => (
+        <group>
+            {debug && (
+                <>
+                    <mesh position={emitterPosition}>
+                        <sphereGeometry args={[0.1, 16, 16]} />
+                        <meshStandardMaterial color="hotpink" />
+                    </mesh>
+                    <mesh position={emitterPosition}>
+                        <boxGeometry args={[range * 2, range * 2, range * 2]} />
+                        <meshStandardMaterial color="red" wireframe />
+                    </mesh>
+                </>
+            )}
+            {Array.from({ length: activeCount }).map((_, i) => (
                 <Particle
                     particle={particle}
                     key={i}
-                    startPosition={emitterPosition}
+                    emitterPosition={emitterPosition}
                     size={size}
                     range={range}
                     randomRotation={randomRotation}
                     scaleFactor={scaleFactor}
+                    initialDelay={0}
+                    lifetime={lifetime}
                 />
             ))}
         </group>
