@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF, useTexture } from '@react-three/drei';
+import { FollowCam } from '@/shared/FollowCam';
 
 export function Road() {
     // Refs for animation state
@@ -137,7 +138,7 @@ export function Road() {
     // Cars
     const blueCarRef = useRef<THREE.Mesh>(null);
     const redCarRef = useRef<THREE.Mesh>(null);
-    const blueCarGLTF = useGLTF('/models/rigga.glb');
+    const blueCarGLTF = useGLTF('/models/cars/taxi/car.glb');
     const redCarGLTF = useGLTF('/models/rigga2.glb');
     const [blueCarScene, setBlueCarScene] = useState<THREE.Object3D | null>(null);
     const [redCarScene, setRedCarScene] = useState<THREE.Object3D | null>(null);
@@ -263,7 +264,8 @@ export function Road() {
             {/* Cars */}
             {blueCarScene && (
                 <group ref={blueCarRef} >
-                    <primitive object={blueCarGLTF.scene} />
+                    <FollowCam height={1.5} />
+                    <primitive rotation-y={Math.PI} object={blueCarGLTF.scene} />
                 </group>
             )}
             {redCarScene && (

@@ -75,7 +75,7 @@ const Vehicle = ({ driving = true, debug = false }) => {
             const clone = SkeletonUtils.clone(chassisGLTF.scene)
             // Ensure all meshes in the chassis cast shadows
             clone.traverse((child) => {
-                if (child.isMesh) {
+                if (child instanceof THREE.Mesh) {
                     child.castShadow = true
                 }
             })

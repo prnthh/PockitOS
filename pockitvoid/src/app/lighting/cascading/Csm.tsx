@@ -3,8 +3,6 @@ import { useFrame, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import CSM from 'three-csm'
 
-THREE.CSM = CSM
-
 interface CsmProps extends React.PropsWithChildren {
   cascades?: number
   shadowMapSize?: number
@@ -17,15 +15,15 @@ export function Csm({ children, cascades = 4, shadowMapSize = 1024, lightDirecti
   const { scene: parent, camera } = useThree()
   const [csm] = useState(
     () =>
-      new THREE.CSM({
+      new CSM({
         camera,
         parent,
         maxFar: camera.far || 250,
         cascades: 3,
         shadowMapSize: 2048,
         lightDirection: new THREE.Vector3(1, -1, 1).normalize(),
-        lightFar: 5000,
-        lightNear: 1,
+        // lightFar: 5000,
+        // lightNear: 1,
         shadowBias: 0
       })
   )
@@ -42,12 +40,19 @@ export function Csm({ children, cascades = 4, shadowMapSize = 1024, lightDirecti
   useLayoutEffect(() => {
     if (ref.current) {
       ref.current.traverse((obj) => {
-        if ((obj as THREE.Mesh).material) csm.setupMaterial((obj as THREE.Mesh).material)
+        const material = (obj as THREE.Mesh).material
+        if (material) {
+          if (Array.isArray(material)) {
+            material.forEach((mat) => csm.setupMaterial(mat))
+          } else {
+            csm.setupMaterial(material)
+          }
+        }
       })
     }
   })
   useFrame(() => {
-    csm.update(camera.matrix)
+    csm.update()
   })
   return (
     <group ref={ref} {...props}>

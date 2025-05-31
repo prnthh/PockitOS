@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 const allExperiments = [
     'barebones',
     'floor/ground', 'floor/terrainCollider', 'floor/terrain2',
-    'lighting/simple', 'lighting/shadowmap',
+    'lighting/simple', 'lighting/shadowmap', 'lighting/cascading', 'lighting/probe',
     'car/simple', 'car/model', 'car/road', 'car/driver',
     'interior',
     'particles', 'webgpu',
