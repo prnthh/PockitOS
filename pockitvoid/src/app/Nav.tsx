@@ -18,8 +18,8 @@ const allExperiments = [
     'retargeting/basic', 'retargeting/variety',
     'xr',
     'milady/chess', 'milady/surfer',
-    'playground', 'wfc/index.html',
-];
+    'playground', '../wfc/index.html',
+].map(e => `sketches/${e}`); // Prefix all with 'sketches/'
 
 const geistMono = Geist_Mono({
     variable: "--font-geist-mono",
@@ -68,6 +68,7 @@ function DemoTree({ node, prefix = "", search = "", currentPath = "" }: { node: 
                     const fullPath = prefix + key;
                     // Normalize paths: remove trailing slashes, ignore query/hash
                     const normalize = (p: string) => p.replace(/[?#].*$/, '').replace(/\/$/, '');
+                    // Adjusted: currentPath may start with /sketches, so match accordingly
                     const isActive = normalize(currentPath || '') === `/${normalize(fullPath)}`;
                     return (
                         <Link

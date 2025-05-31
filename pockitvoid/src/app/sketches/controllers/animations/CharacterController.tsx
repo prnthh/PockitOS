@@ -6,7 +6,7 @@ import { MathUtils, Vector3, Group, PerspectiveCamera, Euler, Quaternion } from 
 import { degToRad } from "three/src/math/MathUtils.js";
 import AnimatedModel from "@/shared/HumanoidModel";
 import * as THREE from "three";
-import { FollowCam } from "../../../shared/FollowCam";
+import { FollowCam } from "../../../../shared/FollowCam";
 
 const normalizeAngle = (angle: number): number => {
     while (angle > Math.PI) angle -= 2 * Math.PI;
@@ -134,7 +134,7 @@ export const CharacterController = () => {
                 // Apply movement with current Y velocity preserved
                 velocityRef.current.set(dir.x * speed, velocityRef.current.y, dir.z * speed);
                 isVelocityRefDirty.current = true;
-                setAnimation(speed === RUN_SPEED ? "run" : "walk");
+                setAnimation(speed === RUN_SPEED ? "run" : moveX !== 0 ? "walk" : "walk");
             } else {
                 setAnimation("idle");
             }

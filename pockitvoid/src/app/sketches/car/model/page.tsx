@@ -5,7 +5,7 @@ import { Physics, RigidBody } from "@react-three/rapier";
 import { OrbitControls } from "@react-three/drei";
 import Vehicle from "./car/base";
 import Controls from "@/shared/ControlsProvider";
-import { ShadowLight } from "@/app/lighting/shadowmap/ShadowLight";
+import { ShadowLight } from "@/app/sketches/lighting/shadowmap/ShadowLight";
 
 export default function Home() {
     return (

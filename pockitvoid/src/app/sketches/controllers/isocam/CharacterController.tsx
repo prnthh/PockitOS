@@ -1,12 +1,12 @@
-import { Box, useKeyboardControls } from "@react-three/drei";
+import { Box, OrbitControls, PerspectiveCamera, useKeyboardControls } from "@react-three/drei";
 import { Camera, useFrame } from "@react-three/fiber";
 import { CapsuleCollider, RapierRigidBody, RigidBody, useRapier } from "@react-three/rapier";
 import { useEffect, useRef, useState, MutableRefObject, useMemo, useCallback } from "react";
-import { MathUtils, Vector3, Group, PerspectiveCamera, Euler, Quaternion } from "three";
+import { MathUtils, Vector3, Group, Euler, Quaternion } from "three";
 import { degToRad } from "three/src/math/MathUtils.js";
 import AnimatedModel from "@/shared/HumanoidModel";
 import * as THREE from "three";
-import { FollowCam } from "../../../shared/FollowCam";
+import { FollowCam } from "../../../../shared/FollowCam";
 
 const normalizeAngle = (angle: number): number => {
     while (angle > Math.PI) angle -= 2 * Math.PI;
@@ -41,7 +41,6 @@ export const CharacterController = () => {
     const character = useRef<Group>(null);
     const characterRotationTarget = useRef<number>(0);
     const rotationTarget = useRef<number>(0);
-    const verticalRotation = useRef<number>(0); // Add this line
 
     const [, get] = useKeyboardControls();
     const isPointerLocked = useRef<boolean>(false);
@@ -52,64 +51,6 @@ export const CharacterController = () => {
     const velocityRef = useRef<Vector3>(new Vector3(0, 0, 0));
     const isVelocityRefDirty = useRef<boolean>(false);
     const canJump = useRef<boolean>(true);
-
-    useEffect(() => {
-        const onMouseDown = (e: MouseEvent | TouchEvent) => {
-            if (e instanceof MouseEvent && e.target instanceof HTMLElement) {
-                e.target.requestPointerLock?.();
-            }
-        };
-        const onMouseMove = (e: MouseEvent) => {
-            if (!isPointerLocked.current) return;
-            const deltaX = e.movementX;
-            const deltaY = e.movementY;
-            rotationTarget.current -= deltaX * 0.005;
-            // Clamp vertical rotation between -85 and 85 degrees
-            verticalRotation.current = MathUtils.clamp(
-                verticalRotation.current + deltaY * 0.005,
-                degToRad(-85),
-                degToRad(85)
-            );
-        };
-        const onPointerLockChange = () => {
-            isPointerLocked.current = document.pointerLockElement !== null;
-            if (!isPointerLocked.current) lastMouseX.current = null;
-        };
-        const onMouseButtonChange = (e: MouseEvent) => {
-            if (e.button === 2) { // Right mouse button
-                setShoulderCamMode(e.type === 'mousedown');
-            }
-        };
-
-        document.addEventListener("mousedown", onMouseDown);
-        document.addEventListener("mousemove", onMouseMove);
-        document.addEventListener("pointerlockchange", onPointerLockChange);
-        document.addEventListener("touchstart", onMouseDown);
-        document.addEventListener("mousedown", onMouseButtonChange);
-        document.addEventListener("mouseup", onMouseButtonChange);
-        // Prevent context menu from appearing on right click
-        document.addEventListener("contextmenu", (e) => e.preventDefault());
-
-        return () => {
-            document.removeEventListener("mousedown", onMouseDown);
-            document.removeEventListener("mousemove", onMouseMove);
-            document.removeEventListener("pointerlockchange", onPointerLockChange);
-            document.removeEventListener("touchstart", onMouseDown);
-            document.removeEventListener("mousedown", onMouseButtonChange);
-            document.removeEventListener("mouseup", onMouseButtonChange);
-            document.removeEventListener("contextmenu", (e) => e.preventDefault());
-        };
-    }, []);
-
-    useEffect(() => {
-        const handleKeyUp = (e: KeyboardEvent) => {
-            if (e.code === "Space") {
-                // Reset jump state on key release
-            }
-        };
-        window.addEventListener("keyup", handleKeyUp);
-        return () => window.removeEventListener("keyup", handleKeyUp);
-    }, []);
 
     useFrame(({ camera }) => {
         if (rb.current) {
@@ -134,7 +75,7 @@ export const CharacterController = () => {
                 // Apply movement with current Y velocity preserved
                 velocityRef.current.set(dir.x * speed, velocityRef.current.y, dir.z * speed);
                 isVelocityRefDirty.current = true;
-                setAnimation(speed === RUN_SPEED ? "run" : moveX !== 0 ? "walk" : "walk");
+                setAnimation(speed === RUN_SPEED ? "run" : "walk");
             } else {
                 setAnimation("idle");
             }
@@ -187,12 +128,9 @@ export const CharacterController = () => {
 
     return (
         <RigidBody colliders={false} lockRotations ref={rb} position={[0, 4, 0]}>
+            <PerspectiveCamera />
+            <OrbitControls />
             <group ref={container}>
-                <FollowCam height={height}
-                    verticalRotation={verticalRotation}
-                    cameraOffset={shoulderCamMode ? new Vector3(-0.5, 0.5, 0.4) : new Vector3(0, 0.5, -0.5)}
-                    targetOffset={shoulderCamMode ? new Vector3(0, height / 3, 1) : new Vector3(0, height / 2, 1.5)}
-                />
                 <group ref={character}>
                     <AnimatedModel
                         model="/models/rigga.glb"
