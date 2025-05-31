@@ -72,7 +72,14 @@ const Vehicle = ({ driving = true, debug = false }) => {
     const wheelCloneRef = useRef<THREE.Object3D>(null)
     useEffect(() => {
         if (chassisGLTF.scene && !chassisCloneRef.current) {
-            chassisCloneRef.current = SkeletonUtils.clone(chassisGLTF.scene)
+            const clone = SkeletonUtils.clone(chassisGLTF.scene)
+            // Ensure all meshes in the chassis cast shadows
+            clone.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true
+                }
+            })
+            chassisCloneRef.current = clone
         }
         if (wheelGLTF.scene && !wheelCloneRef.current) {
             wheelCloneRef.current = SkeletonUtils.clone(wheelGLTF.scene)
