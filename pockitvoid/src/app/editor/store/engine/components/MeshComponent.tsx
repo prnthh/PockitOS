@@ -22,9 +22,7 @@ export function addMeshComponent(gameObject: any, data: Partial<MeshData> = {}) 
 // Generic mesh renderer
 export const MeshComponent = forwardRef(({ meshComponent }: { meshComponent?: MeshData }, ref) => {
     if (meshComponent && meshComponent.path) {
-        const gltf = useGLTF(meshComponent.path);
-        const scene = (gltf && "scene" in gltf) ? gltf.scene : null;
-        return scene ? <primitive ref={ref} object={scene} /> : null;
+        return <GLTFMesh path={meshComponent.path} refProp={ref} />;
     }
     // Fallback: box mesh
     return (
@@ -34,3 +32,9 @@ export const MeshComponent = forwardRef(({ meshComponent }: { meshComponent?: Me
         </mesh>
     );
 });
+
+export function GLTFMesh({ path, refProp }: { path: string; refProp: any }) {
+    const gltf = useGLTF(path);
+    const scene = (gltf && "scene" in gltf) ? gltf.scene : null;
+    return scene ? <primitive ref={refProp} object={scene} /> : null;
+}

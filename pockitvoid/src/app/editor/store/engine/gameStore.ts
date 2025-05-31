@@ -78,7 +78,7 @@ const useGameStore = create<GameState>((set, get) => ({
     };
     const components: Components = { ...initialData, transform };
     set((state) => {
-      let newGameObjects = { ...state.gameObjects, [id]: { id, components } };
+      const newGameObjects = { ...state.gameObjects, [id]: { id, components } };
       if (transform.parent) {
         const parent = newGameObjects[transform.parent];
         if (parent) {
@@ -145,7 +145,7 @@ const useGameStore = create<GameState>((set, get) => ({
       const gameObject = state.gameObjects[id];
       if (!gameObject || gameObject.components.transform.parent === parentId) return state;
 
-      let newGameObjects = { ...state.gameObjects };
+      const newGameObjects = { ...state.gameObjects };
 
       // Remove from old parent's children
       const oldParentId = gameObject.components.transform.parent;

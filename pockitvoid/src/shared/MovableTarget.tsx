@@ -11,7 +11,7 @@ function MovableTarget({ position, setPosition }: { position?: number[], setPosi
     const handleTransformChange = () => {
         if (meshRef.current) {
             const position = meshRef.current.parent?.position;
-            position && setPosition([position.x, position.y, position.z]);
+            if (position) setPosition([position.x, position.y, position.z]);
         }
     };
 

@@ -14,8 +14,7 @@ import {
 } from '@react-three/fiber'
 import { useMemo, useRef } from 'react'
 import { DoubleSide, ShaderMaterial } from 'three'
-import { EXRLoader } from 'three/examples/jsm/loaders/EXRLoader'
-import { GLTF } from 'three-stdlib'
+import { EXRLoader, GLTF } from 'three-stdlib'
 import * as THREE from 'three'
 
 // height on pixels of the animation texture

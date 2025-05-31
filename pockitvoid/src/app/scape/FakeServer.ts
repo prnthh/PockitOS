@@ -27,11 +27,11 @@ let drops: Drop[] = [];
 const SERVER_TICK = 600; // milliseconds
 const GRID_SIZE = 20; // Size of each grid cell in the tilemap
 
-let tilemap = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(1));
-let players: Record<string, PlayerState> = {};
+const tilemap = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(1));
+const players: Record<string, PlayerState> = {};
 
 // New: Player inventories (not broadcast to all)
-let playerInventories: Record<string, Record<string, number>> = {};
+const playerInventories: Record<string, Record<string, number>> = {};
 
 
 function getStep(from: [number, number], to: [number, number]) {

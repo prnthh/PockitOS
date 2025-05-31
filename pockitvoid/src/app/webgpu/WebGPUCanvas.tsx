@@ -1,69 +1,73 @@
-"use client";
-import { OrbitControls, Stats } from "@react-three/drei";
-import {
-    CameraProps,
-    Canvas,
-    extend,
-    type ThreeToJSXElements,
-} from "@react-three/fiber";
-import React, {
-    type FC,
-    type PropsWithChildren,
-    useLayoutEffect,
-    useState,
-} from "react";
-import WebGPU from "three/examples/jsm/capabilities/WebGPU.js";
-import { type WebGPURendererParameters } from "three/src/renderers/webgpu/WebGPURenderer.js";
-import * as THREE from "three/webgpu";
-import NotSupported from "./NotSupported";
+import { Canvas, type CanvasProps } from '@react-three/fiber';
+import type * as React from 'react';
+import WebGPU from 'three/addons/capabilities/WebGPU.js';
+import { WebGPURenderer } from 'three/webgpu';
 
+const UNSUPPORTED_WRAPPER_STYLES: React.CSSProperties = {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    zIndex: 1000,
+    width: '100%',
+    height: '100%',
+    color: '#fff',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+};
+const UNSUPPORTED_NOTICE_STYLES: React.CSSProperties = {
+    fontSize: '1.5rem',
+    textAlign: 'center',
+    boxSizing: 'border-box',
+    padding: '3em',
+};
 
-declare module "@react-three/fiber" {
-    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-    interface ThreeElements extends ThreeToJSXElements<typeof THREE> { }
-}
+export type WebGPUCanvasProps = {
+    /**
+     * @default false
+     */
+    forceWebGL?: boolean;
+    /**
+     * @default false
+     */
+    forceWebGPU?: boolean;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-extend(THREE as any);
+    gl?: ConstructorParameters<typeof WebGPURenderer>[0];
+} & Omit<CanvasProps, 'gl'>;
 
-type Props = PropsWithChildren<{
-    isMobile?: boolean;
-    cameraProps?: CameraProps;
-}>;
-
-const WebGPUCanvas: FC<Props> = ({
+export const WebGPUCanvas = ({
     children,
-    cameraProps = { position: [0, 0, 5], far: 20, fov: 70 },
-}) => {
-    const [isSupported, setIsSupported] = useState<boolean | null>(null);
+    forceWebGL = false,
+    forceWebGPU = false,
+    gl,
+    ...props
+}: React.PropsWithChildren<WebGPUCanvasProps>) => {
+    if (forceWebGPU && !WebGPU.isAvailable()) {
+        return (
+            <div style={UNSUPPORTED_WRAPPER_STYLES}>
+                <div style={UNSUPPORTED_NOTICE_STYLES}>
+                    Your browser doesn't support WebGPU, this content cannot be
+                    displayed.
+                </div>
+            </div>
+        );
+    }
 
-    useLayoutEffect(() => {
-        setIsSupported(WebGPU.isAvailable());
-    }, []);
-
-    if (isSupported === null) return null;
-    if (!isSupported) return <NotSupported />;
     return (
         <Canvas
-            className="!fixed inset-0"
-            performance={{ min: 0.5, debounce: 300 }}
-            camera={cameraProps}
-            flat={true}
-            gl={async (props) => {
-                console.warn("WebGPU is supported");
-                const renderer = new THREE.WebGPURenderer(
-                    props as WebGPURendererParameters
-                );
+            {...props}
+            id="gl"
+            gl={async ({ canvas }) => {
+                const renderer = new WebGPURenderer({
+                    ...gl,
+                    canvas: canvas as HTMLCanvasElement,
+                    forceWebGL,
+                });
                 await renderer.init();
                 return renderer;
             }}
         >
-            {/* Your components here */}
             {children}
-            <OrbitControls />
-            {process.env.NODE_ENV === "development" && <Stats />}
         </Canvas>
     );
 };
-
-export default WebGPUCanvas;

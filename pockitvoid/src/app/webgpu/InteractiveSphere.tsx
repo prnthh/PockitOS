@@ -4,6 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import React, { type FC, useMemo, useState } from "react";
 import { MathUtils } from "three";
 import { color, mix, positionWorld, uniform, uv, vec3 } from "three/tsl";
+import { MeshPhongNodeMaterial } from "three/webgpu";
 
 // Basic component showing how to add smooth hover interactivity with TSL
 
@@ -40,6 +41,16 @@ const InteractiveSphere: FC = () => {
         );
     });
 
+    // Create the MeshPhongNodeMaterial instance using useMemo so it's not recreated every render
+    const material = useMemo(() => {
+        const mat = new MeshPhongNodeMaterial();
+        mat.colorNode = colorNode;
+        mat.positionNode = positionNode;
+        mat.shininess = 20;
+        return mat;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [colorNode, positionNode, key]);
+
     return (
         <Sphere
             position={[0, 0, 0]}
@@ -52,15 +63,8 @@ const InteractiveSphere: FC = () => {
                 document.body.style.cursor = "auto";
                 setIsPointerOver(false);
             }}
-        >
-            {/* We're using the Phong Node material for built-in lighting/shadows/shininess */}
-            <meshPhongNodeMaterial
-                key={key}
-                colorNode={colorNode}
-                positionNode={positionNode}
-                shininess={20}
-            />
-        </Sphere>
+            material={material}
+        />
     );
 };
 

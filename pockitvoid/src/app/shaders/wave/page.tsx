@@ -29,7 +29,7 @@ function Scene() {
         rt.stencilBuffer = false;
 
         // Add depth texture if supported
-        rt.depthTexture = new THREE.DepthTexture();
+        rt.depthTexture = new THREE.DepthTexture(window.innerWidth, window.innerHeight);
         rt.depthTexture.type = THREE.UnsignedShortType;
         return rt;
     });

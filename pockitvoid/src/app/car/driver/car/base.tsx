@@ -44,7 +44,7 @@ const Vehicle = ({ driving = true }) => {
     const { scheme, setScheme } = useControlScheme(); // added
 
     useEffect(() => {
-        driving && setScheme("drive");
+        if (driving) setScheme("drive");
     }, [driving, setScheme]);
 
     const chasisMeshRef = useRef<THREE.Mesh>(null!)
