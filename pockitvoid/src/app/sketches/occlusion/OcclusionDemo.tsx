@@ -1,9 +1,19 @@
 "use client";
 import React, { useRef, useEffect } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree, extend } from "@react-three/fiber";
 import { OrbitControls, Sphere, Plane } from "@react-three/drei";
 import * as THREE from "three";
+import * as THREE_WEBGPU from "three/webgpu";
+import * as TSL from "three/tsl";
 import { LooseOctree } from "./LooseOctree";
+
+// Extend R3F with WebGPU and TSL classes
+extend(THREE_WEBGPU as any);
+extend(TSL as any);
+
+declare module '@react-three/fiber' {
+    interface ThreeElements extends JSX.IntrinsicElements { }
+}
 
 // OcclusionCullingGroup: wraps children, builds loose octree, toggles mesh visibility based on occlusion
 function OcclusionCullingGroup({ children }: { children: React.ReactNode }) {
@@ -87,12 +97,19 @@ function OcclusionCullingGroup({ children }: { children: React.ReactNode }) {
 
 const OcclusionDemo = () => {
     return (
-        <Canvas camera={{ position: [0, 0, 7], fov: 50, near: 0.01, far: 100 }}>
+        <Canvas
+            gl={async (props) => {
+                const renderer = new THREE_WEBGPU.WebGPURenderer(props as any);
+                await renderer.init();
+                return renderer;
+            }}
+            camera={{ position: [0, 0, 7], fov: 50, near: 0.01, far: 100 }}
+        >
             <ambientLight intensity={0.7} />
             <directionalLight position={[0.32, 0.39, 0.7]} intensity={1} />
             <OcclusionCullingGroup>
                 <Plane args={[2, 2]} position={[0, 0, 0]}>
-                    <meshPhongMaterial transparent opacity={0.5} />
+                    <meshBasicNodeMaterial transparent opacity={0.5} />
                 </Plane>
                 {/* Add a grid of spheres along x and z axes */}
                 {Array.from({ length: 5 }).map((_, xi) =>
@@ -101,7 +118,7 @@ const OcclusionDemo = () => {
                         const z = -4 + zi * 1.5;
                         return (
                             <Sphere key={`sphere-${xi}-${zi}`} args={[0.5, 32, 32]} position={[x, 0, z]}>
-                                <meshPhongMaterial color="#00ffff" />
+                                <meshStandardNodeMaterial color="#00ffff" />
                             </Sphere>
                         );
                     })
