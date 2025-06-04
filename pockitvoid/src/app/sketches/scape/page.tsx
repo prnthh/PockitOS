@@ -6,6 +6,8 @@ import Tile from "./Tile";
 import Player from "./Player";
 import { useState, useRef, useEffect } from "react";
 import FakeServer from "./FakeServer";
+import { MapEntity } from "./MapEntity";
+import { InventoryUI } from "./ui/Inventory";
 
 const TILE_SIZE = 0.66; // Size of each tile in the tilemap
 
@@ -19,19 +21,17 @@ export default function Home() {
     const [allPlayers, setAllPlayers] = useState(FakeServer.getAllPlayers());
     // Track drops for rendering
     const [drops, setDrops] = useState(FakeServer.getDrops());
+    // Track map entities for rendering
+    const [entities, setEntities] = useState<MapEntity[]>(FakeServer.getEntities());
     useEffect(() => {
         const interval = setInterval(() => {
             setPlayerPos(FakeServer.getPlayerPos(playerId));
             setAllPlayers({ ...FakeServer.getAllPlayers() });
             setDrops([...FakeServer.getDrops()]);
+            setEntities([...FakeServer.getEntities()]);
         }, 200);
         return () => clearInterval(interval);
     }, [playerId]);
-
-    // Click a tile to walk to it
-    const handleTileClick = (i: number, j: number) => {
-        FakeServer.setAction(playerId, { type: "walkTo", pos: [i, j] });
-    };
 
     // Click a player to attack them
     const handlePlayerClick = (targetId: string) => {
@@ -45,21 +45,40 @@ export default function Home() {
         FakeServer.setAction(playerId, { type: "pickupDrop", dropId });
     };
 
+    // Click a map entity to extract resource
+    const handleEntityClick = (entity: MapEntity) => {
+        if (!entity.depleted && entity.resourceAmount > 0) {
+            FakeServer.setAction(playerId, { type: "extractResource", entityId: entity.id });
+        }
+    };
+
     return (
         <div className="items-center justify-items-center min-h-screen">
             <div className="w-full" style={{ height: "100vh" }}>
                 <Canvas>
                     {/* todo optimise tile drawing so it doesnt refresh every tick */}
-                    {FakeServer.getTilemap().map((row: number[], i: number) =>
-                        row.map((tile: number, j: number) => (
-                            <Tile
-                                key={`tile-${i}-${j}`}
-                                position={[(i - 4.5) * TILE_SIZE, -2 * TILE_SIZE, (j - 4.5) * TILE_SIZE]}
-                                type={tile}
-                                onClick={() => handleTileClick(i, j)}
-                            />
-                        ))
-                    )}
+                    <MapGrid playerId={playerId} />
+                    {/* Render map entities (trees, ores) */}
+                    {entities.map(entity => (
+                        <mesh
+                            key={entity.id}
+                            position={[(entity.pos[0] - 4.5) * TILE_SIZE, -1.7 * TILE_SIZE, (entity.pos[1] - 4.5) * TILE_SIZE]}
+                            onClick={e => {
+                                e.stopPropagation();
+                                handleEntityClick(entity);
+                            }}
+                        >
+                            {/* Use different geometry/material for trees vs ores */}
+                            {entity.type.kind === "tree" ? (
+                                <cylinderGeometry args={[0.13 * TILE_SIZE, 0.18 * TILE_SIZE, 0.5 * TILE_SIZE, 12]} />
+                            ) : (
+                                <sphereGeometry args={[0.18 * TILE_SIZE, 12, 12]} />
+                            )}
+                            <meshStandardMaterial color={
+                                entity.depleted ? "gray" : entity.type.kind === "tree" ? "#228B22" : "#888888"
+                            } opacity={entity.depleted ? 0.5 : 1} transparent />
+                        </mesh>
+                    ))}
                     {Object.entries(allPlayers).map(([id, state]) => (
                         <group key={id}>
                             <Player
@@ -92,6 +111,26 @@ export default function Home() {
                     <pointLight position={[10, 10, 10]} />
                 </Canvas>
             </div>
+            <InventoryUI playerId={playerId} />
         </div>
     );
 }
+
+
+const MapGrid = ({ playerId }: { playerId: string }) => {
+    // Click a tile to walk to it
+    const handleTileClick = (i: number, j: number) => {
+        FakeServer.setAction(playerId, { type: "walkTo", pos: [i, j] });
+    };
+
+    return FakeServer.getTilemap().map((row: number[], i: number) =>
+        row.map((tile: number, j: number) => (
+            <Tile
+                key={`tile-${i}-${j}`}
+                position={[(i - 4.5) * TILE_SIZE, -2 * TILE_SIZE, (j - 4.5) * TILE_SIZE]}
+                type={tile}
+                onClick={() => handleTileClick(i, j)}
+            />
+        ))
+    )
+};

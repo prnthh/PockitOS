@@ -20,7 +20,7 @@ export default function Tile({ position, type, onClick, isTarget, ...props }: Ti
       {...props}
     >
       <boxGeometry args={[0.66, 0.1, 0.66]} />
-      <meshStandardMaterial color={isTarget ? "red" : hovered ? "hotpink" : type === 1 ? "gray" : "white"} />
+      <meshStandardMaterial color={isTarget ? "red" : hovered ? "hotpink" : type === 1 ? "lightgrey" : "white"} />
     </mesh>
   );
 }
