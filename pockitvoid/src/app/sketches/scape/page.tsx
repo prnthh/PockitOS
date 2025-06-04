@@ -1,21 +1,24 @@
 "use client";
 
 import { Canvas } from "@react-three/fiber";
-import { Html, OrbitControls } from "@react-three/drei";
-import Tile from "./Tile";
 import Player from "./Player";
 import { useState, useRef, useEffect } from "react";
 import FakeServer from "./FakeServer";
 import { MapEntity } from "./MapEntity";
 import { InventoryUI } from "./ui/Inventory";
-import MapGrid from "./MapGrid";
+import MapGrid, { generateHeight } from "./MapGrid";
 import { Box } from "@react-three/drei";
 
 const TILE_SIZE = 0.66; // Size of each tile in the tilemap
+const GRID_WIDTH = 16;
+const GRID_DEPTH = 16;
 
 export default function Home() {
     // Store playerId in React state (not persisted)
     const [playerId] = useState(() => Math.random().toString(36).slice(2) + Date.now());
+
+    // Generate map height data once in the parent (must be inside component)
+    const [heightData] = useState(() => generateHeight(GRID_WIDTH, GRID_DEPTH));
 
     const [playerPos, setPlayerPos] = useState(FakeServer.getPlayerPos(playerId));
     // Remove targetPos, use currentAction
@@ -55,6 +58,13 @@ export default function Home() {
         }
     };
 
+    // Helper to get y height at (i, j)
+    function getY(i: number, j: number) {
+        if (i < 0 || j < 0 || i >= GRID_WIDTH || j >= GRID_DEPTH) return 0;
+        const idx = j * GRID_WIDTH + i;
+        return heightData[idx] * 0.08;
+    }
+
     return (
         <div className="items-center justify-items-center min-h-screen">
             <div className="w-full" style={{ height: "100vh" }}>
@@ -62,12 +72,13 @@ export default function Home() {
                     {/* Use new MapGrid for terrain and tile rendering */}
                     <MapGrid
                         debug
-                        width={16}
-                        depth={16}
+                        width={GRID_WIDTH}
+                        depth={GRID_DEPTH}
                         tileSize={TILE_SIZE}
+                        heightData={heightData}
                         onTileClick={({ i, j, x, y, z }) => {
                             FakeServer.setAction(playerId, { type: "walkTo", pos: [i, j] });
-                            setNavPointer([x, y, z]);
+                            setNavPointer([x, getY(i, j), z]);
                         }}
                     />
                     {/* NavPointer debug cube */}
@@ -81,7 +92,7 @@ export default function Home() {
                     {entities.map(entity => (
                         <mesh
                             key={entity.id}
-                            position={[(entity.pos[0]) * TILE_SIZE, 0.2, (entity.pos[1]) * TILE_SIZE]}
+                            position={[(entity.pos[0]) * TILE_SIZE, getY(entity.pos[0], entity.pos[1]), (entity.pos[1]) * TILE_SIZE]}
                             onClick={e => {
                                 e.stopPropagation();
                                 handleEntityClick(entity);
@@ -103,7 +114,11 @@ export default function Home() {
                             <Player
                                 key={id}
                                 health={state.health}
-                                position={[(state.pos[0]) * TILE_SIZE, 0.3, (state.pos[1]) * TILE_SIZE]}
+                                position={[
+                                    (state.pos[0]) * TILE_SIZE,
+                                    getY(state.pos[0], state.pos[1]) + 0.3,
+                                    (state.pos[1]) * TILE_SIZE
+                                ]}
                                 color={id === playerId ? "orange" : "blue"}
                                 onClick={e => {
                                     e.stopPropagation();
@@ -116,7 +131,7 @@ export default function Home() {
                     {drops.map(drop => (
                         <mesh
                             key={drop.id}
-                            position={[(drop.pos[0]) * TILE_SIZE, 0, (drop.pos[1]) * TILE_SIZE]}
+                            position={[(drop.pos[0]) * TILE_SIZE, getY(drop.pos[0], drop.pos[1]), (drop.pos[1]) * TILE_SIZE]}
                             onClick={e => {
                                 e.stopPropagation();
                                 handleDropClick(drop.id);

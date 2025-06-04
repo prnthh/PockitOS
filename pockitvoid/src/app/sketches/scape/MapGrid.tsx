@@ -7,37 +7,37 @@ interface MapGridProps {
     width?: number;
     depth?: number;
     tileSize?: number;
+    heightData: Uint8Array;
     onTileClick?: (coords: { x: number; y: number; z: number; i: number; j: number }) => void;
     debug?: boolean; // Add debug prop
+}
+
+// Export height generation utility
+export function generateHeight(width: number, height: number) {
+    const size = width * height;
+    const data = new Uint8Array(size);
+    const perlin = new ImprovedNoise();
+    const z = Math.random() * 100;
+    let quality = 1;
+    for (let j = 0; j < 4; j++) {
+        for (let i = 0; i < size; i++) {
+            const x = i % width;
+            const y = ~~(i / width);
+            data[i] += Math.abs(perlin.noise(x / quality, y / quality, z) * quality * 1.2);
+        }
+        quality *= 4;
+    }
+    return data;
 }
 
 export default function MapGrid({
     width = 32,
     depth = 32,
     tileSize = 0.66,
+    heightData,
     onTileClick,
     debug = false, // default to false
 }: MapGridProps) {
-    // Generate height data using Perlin noise (copied from terrain.tsx)
-    const generateHeight = (width: number, height: number) => {
-        const size = width * height;
-        const data = new Uint8Array(size);
-        const perlin = new ImprovedNoise();
-        const z = Math.random() * 100;
-        let quality = 1;
-        for (let j = 0; j < 4; j++) {
-            for (let i = 0; i < size; i++) {
-                const x = i % width;
-                const y = ~~(i / width);
-                data[i] += Math.abs(perlin.noise(x / quality, y / quality, z) * quality * 1.2); // reduce eccentricity
-            }
-            quality *= 0;
-        }
-        return data;
-    };
-
-    const heightData = useMemo(() => generateHeight(width, depth), [width, depth]);
-
     // Create a continuous plane geometry
     const geometry = useMemo(() => {
         const geo = new THREE.PlaneGeometry(
@@ -61,28 +61,47 @@ export default function MapGrid({
     const gridLines = useMemo(() => {
         if (!debug) return null;
         const lines = [];
+        const yOffset = 0.01; // Small offset to prevent z-fighting
         // Vertical lines (along z)
         for (let i = 0; i <= width; i++) {
-            const x = i * tileSize;
-            lines.push(
-                x, 0, 0,
-                x, 0, depth * tileSize
-            );
+            for (let j = 0; j < depth; j++) {
+                // Each segment from (i, j) to (i, j+1)
+                const idxA = j * width + Math.min(i, width - 1);
+                const idxB = (j + 1) * width + Math.min(i, width - 1);
+                const x = i * tileSize;
+                const zA = j * tileSize;
+                const zB = (j + 1) * tileSize;
+                const yA = heightData[idxA] * 0.08 + yOffset;
+                const yB = (j + 1 < depth) ? heightData[idxB] * 0.08 + yOffset : yA;
+                lines.push(
+                    x, yA, zA,
+                    x, yB, zB
+                );
+            }
         }
         // Horizontal lines (along x)
         for (let j = 0; j <= depth; j++) {
-            const z = j * tileSize;
-            lines.push(
-                0, 0, z,
-                width * tileSize, 0, z
-            );
+            for (let i = 0; i < width; i++) {
+                // Each segment from (i, j) to (i+1, j)
+                const idxA = Math.min(j, depth - 1) * width + i;
+                const idxB = Math.min(j, depth - 1) * width + (i + 1);
+                const xA = i * tileSize;
+                const xB = (i + 1) * tileSize;
+                const z = j * tileSize;
+                const yA = heightData[idxA] * 0.08 + yOffset;
+                const yB = (i + 1 < width) ? heightData[idxB] * 0.08 + yOffset : yA;
+                lines.push(
+                    xA, yA, z,
+                    xB, yB, z
+                );
+            }
         }
         // Removed translation to align grid with mesh
         return new THREE.BufferGeometry().setAttribute(
             'position',
             new THREE.Float32BufferAttribute(lines, 3)
         );
-    }, [debug, width, depth, tileSize]);
+    }, [debug, width, depth, tileSize, heightData]);
 
     return (
         <>
