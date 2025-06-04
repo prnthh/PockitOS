@@ -36,7 +36,7 @@ const RESOURCE_EXTRACTION_COOLDOWN = 3; // ticks between extractions
 const RESOURCE_REPLENISH_TICKS = 20; // ticks to replenish after depletion
 
 const SERVER_TICK = 600; // milliseconds
-const GRID_SIZE = 20; // Size of each grid cell in the tilemap
+const GRID_SIZE = 16; // Size of each grid cell in the tilemap
 
 const tilemap = Array.from({ length: GRID_SIZE }, () => Array(GRID_SIZE).fill(1));
 const players: Record<string, PlayerState> = {};
