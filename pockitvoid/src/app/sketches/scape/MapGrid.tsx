@@ -50,6 +50,9 @@ function generateTexture(data: Uint8Array, width: number, height: number) {
     const BLUE_BASE = 64;
     const BLUE_SHADE = 64;
 
+    // Shadow/shade intensity multiplier (1 = normal, <1 = less shadow, >1 = more shadow)
+    const SHADE_INTENSITY = 0.01;
+
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
@@ -73,10 +76,11 @@ function generateTexture(data: Uint8Array, width: number, height: number) {
         vector3.z = data[j - width * 2] - data[j + width * 2] || 0;
         vector3.normalize();
         const shade = vector3.dot(sun);
-        // Use variables for color channels
-        imageData[i] = (RED_BASE + shade * RED_SHADE) * (0.5 + data[j] * 0.007);      // Red (lower)
-        imageData[i + 1] = (GREEN_BASE + shade * GREEN_SHADE) * (0.5 + data[j] * 0.007); // Green (higher)
-        imageData[i + 2] = (BLUE_BASE + shade * BLUE_SHADE) * (0.5 + data[j] * 0.007);  // Blue (lower)
+        // Blend closer to base color using SHADE_INTENSITY
+        const blend = SHADE_INTENSITY; // 0 = only base, 1 = full shade
+        imageData[i] = RED_BASE + (shade * RED_SHADE) * blend * (0.5 + data[j]);
+        imageData[i + 1] = GREEN_BASE + (shade * GREEN_SHADE) * blend * (0.5 + data[j]);
+        imageData[i + 2] = BLUE_BASE + (shade * BLUE_SHADE) * blend * (0.5 + data[j]);
         imageData[i + 3] = 255;
     }
     context.putImageData(image, 0, 0);
@@ -193,6 +197,7 @@ export default function MapGrid({
             <mesh
                 geometry={geometry}
                 position={[-tileSize / 2, 0, -tileSize / 2]} // Offset mesh by half tileSize on x and z in the negative direction
+                receiveShadow
                 onClick={e => {
                     if (onTileClick) {
                         const point = e.point;

@@ -8,6 +8,7 @@ import { MapEntity } from "./MapEntity";
 import { InventoryUI } from "./ui/Inventory";
 import MapGrid, { generateHeight } from "./MapGrid";
 import { Box } from "@react-three/drei";
+import * as THREE from "three";
 
 const TILE_SIZE = 0.66; // Size of each tile in the tilemap
 const GRID_WIDTH = 16;
@@ -68,7 +69,7 @@ export default function Home() {
     return (
         <div className="items-center justify-items-center min-h-screen">
             <div className="w-full" style={{ height: "100vh" }}>
-                <Canvas>
+                <Canvas shadows>
                     {/* Use new MapGrid for terrain and tile rendering */}
                     <MapGrid
                         debug
@@ -141,8 +142,14 @@ export default function Home() {
                             <meshStandardMaterial color={drop.itemKey === 'bone' ? 'white' : 'yellow'} />
                         </mesh>
                     ))}
-                    <ambientLight intensity={0.8} />
-                    <pointLight position={[10, 10, 10]} />
+                    <ambientLight intensity={0.5} />
+                    <directionalLight
+                        position={[5, 10, 5]}
+                        intensity={1}
+                        castShadow
+                        shadow-mapSize-width={2048}
+                        shadow-mapSize-height={2048}
+                    />
                 </Canvas>
             </div>
             <InventoryUI playerId={playerId} />
