@@ -1,6 +1,6 @@
 // Types for map entities (trees, ores)
 
-export type TreeType = "normal" | "oak" | "maple" | "yew";
+export type TreeType = "normal" | "star" | "heart" | "earth";
 export type OreType = "copper" | "tin" | "iron" | "coal";
 
 export type MapEntityType =

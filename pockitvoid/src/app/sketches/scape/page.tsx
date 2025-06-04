@@ -23,6 +23,7 @@ export default function Home() {
     const [drops, setDrops] = useState(FakeServer.getDrops());
     // Track map entities for rendering
     const [entities, setEntities] = useState<MapEntity[]>(FakeServer.getEntities());
+    const [navPointer, setNavPointer] = useState<[number, number, number] | null>(null); // NavPointer world coords
     useEffect(() => {
         const interval = setInterval(() => {
             setPlayerPos(FakeServer.getPlayerPos(playerId));
@@ -57,7 +58,14 @@ export default function Home() {
             <div className="w-full" style={{ height: "100vh" }}>
                 <Canvas>
                     {/* todo optimise tile drawing so it doesnt refresh every tick */}
-                    <MapGrid playerId={playerId} />
+                    <MapGrid playerId={playerId} setNavPointer={setNavPointer} />
+                    {/* NavPointer debug cube */}
+                    {navPointer && (
+                        <mesh position={navPointer}>
+                            <boxGeometry args={[0.18, 0.18, 0.18]} />
+                            <meshStandardMaterial color="red" />
+                        </mesh>
+                    )}
                     {/* Render map entities (trees, ores) */}
                     {entities.map(entity => (
                         <mesh
@@ -117,12 +125,16 @@ export default function Home() {
 }
 
 
-const MapGrid = ({ playerId }: { playerId: string }) => {
+const MapGrid = ({ playerId, setNavPointer }: { playerId: string, setNavPointer: (pos: [number, number, number]) => void }) => {
     // Click a tile to walk to it
     const handleTileClick = (i: number, j: number) => {
         FakeServer.setAction(playerId, { type: "walkTo", pos: [i, j] });
     };
-
+    const handleTilePointer = (e: any) => {
+        if (e && e.point) {
+            setNavPointer([e.point.x, e.point.y, e.point.z]);
+        }
+    };
     return FakeServer.getTilemap().map((row: number[], i: number) =>
         row.map((tile: number, j: number) => (
             <Tile
@@ -130,6 +142,7 @@ const MapGrid = ({ playerId }: { playerId: string }) => {
                 position={[(i - 4.5) * TILE_SIZE, -2 * TILE_SIZE, (j - 4.5) * TILE_SIZE]}
                 type={tile}
                 onClick={() => handleTileClick(i, j)}
+                onTileClick={handleTilePointer}
             />
         ))
     )

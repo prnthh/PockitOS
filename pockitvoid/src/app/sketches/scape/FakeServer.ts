@@ -44,14 +44,14 @@ const players: Record<string, PlayerState> = {};
 // New: Player inventories (not broadcast to all)
 const playerInventories: Record<string, Record<string, number>> = {};
 
-// Returns true if a tile is occupied by a map entity
-function isTileBlocked(x: number, y: number, ignoreEntityId?: string) {
-    return mapEntities.some(e => e.pos[0] === x && e.pos[1] === y && e.id !== ignoreEntityId);
+// Returns true if a tile is occupied by a map entity (always blocks map entity tiles)
+function isTileBlocked(x: number, y: number) {
+    return mapEntities.some(e => e.pos[0] === x && e.pos[1] === y);
 }
 
 // Returns the nearest walkable adjacent tile to (x, y) from fromPos
-// Optionally, allow ignoring a specific entityId (for moving next to it)
-function getNearestAdjacentTile(fromPos: [number, number], x: number, y: number, ignoreEntityId?: string) {
+// Never allows stepping onto a map entity tile
+function getNearestAdjacentTile(fromPos: [number, number], x: number, y: number) {
     const directions = [
         [1, 0], [-1, 0], [0, 1], [0, -1],
         [1, 1], [1, -1], [-1, 1], [-1, -1]
@@ -63,7 +63,7 @@ function getNearestAdjacentTile(fromPos: [number, number], x: number, y: number,
         if (
             nx >= 0 && nx < GRID_SIZE &&
             ny >= 0 && ny < GRID_SIZE &&
-            !isTileBlocked(nx, ny, ignoreEntityId)
+            !isTileBlocked(nx, ny)
         ) {
             const dist = Math.abs(fromPos[0] - nx) + Math.abs(fromPos[1] - ny);
             if (dist < minDist) {
@@ -76,8 +76,10 @@ function getNearestAdjacentTile(fromPos: [number, number], x: number, y: number,
 }
 
 // Basic BFS pathfinding with max depth
-function bfsPathfind(start: [number, number], goal: [number, number], maxDepth = 32, ignoreEntityId?: string): [number, number][] | null {
+function bfsPathfind(start: [number, number], goal: [number, number], maxDepth = 32): [number, number][] | null {
     if (start[0] === goal[0] && start[1] === goal[1]) return [start];
+    // Never allow path to end on a map entity tile
+    if (isTileBlocked(goal[0], goal[1])) return null;
     const queue: { pos: [number, number]; path: [number, number][]; depth: number }[] = [
         { pos: start, path: [start], depth: 0 }
     ];
@@ -95,12 +97,17 @@ function bfsPathfind(start: [number, number], goal: [number, number], maxDepth =
             if (
                 nx === goal[0] && ny === goal[1]
             ) {
-                return [...path, [nx, ny]];
+                // Don't allow stepping onto a map entity tile
+                if (!isTileBlocked(nx, ny)) {
+                    return [...path, [nx, ny]];
+                } else {
+                    continue;
+                }
             }
             if (
                 nx >= 0 && nx < GRID_SIZE &&
                 ny >= 0 && ny < GRID_SIZE &&
-                !isTileBlocked(nx, ny, ignoreEntityId)
+                !isTileBlocked(nx, ny)
             ) {
                 const key = nx + "," + ny;
                 if (!visited.has(key)) {
@@ -114,9 +121,9 @@ function bfsPathfind(start: [number, number], goal: [number, number], maxDepth =
 }
 
 // Updated getStep to use BFS pathfinding
-function getStep(from: [number, number], to: [number, number], ignoreEntityId?: string) {
+function getStep(from: [number, number], to: [number, number]) {
     if (from[0] === to[0] && from[1] === to[1]) return from;
-    const path = bfsPathfind(from, to, 32, ignoreEntityId);
+    const path = bfsPathfind(from, to, 32);
     if (path && path.length > 1) {
         return path[1]; // next step
     }
@@ -215,14 +222,14 @@ function globalTick() {
                 continue;
             }
             // Move to nearest adjacent tile to entity
-            const adj = getNearestAdjacentTile(player.pos, entity.pos[0], entity.pos[1], entity.id);
+            const adj = getNearestAdjacentTile(player.pos, entity.pos[0], entity.pos[1]);
             if (!adj) {
                 player.currentAction = undefined;
                 player.actionCooldown = 0;
                 continue;
             }
             if (player.pos[0] !== adj[0] || player.pos[1] !== adj[1]) {
-                player.pos = getStep(player.pos, adj, entity.id);
+                player.pos = getStep(player.pos, adj);
                 player.actionCooldown = 0;
             } else if (entity.depleted || entity.resourceAmount <= 0) {
                 player.currentAction = undefined;
@@ -341,7 +348,7 @@ if (mapEntities.length === 0) {
     mapEntities.push(
         {
             id: "tree1",
-            type: { kind: "tree", treeType: "oak" },
+            type: { kind: "tree", treeType: "star" },
             pos: [2, 2],
             resourceAmount: 5,
             maxResource: 5,
@@ -359,7 +366,7 @@ if (mapEntities.length === 0) {
         },
         {
             id: "tree2",
-            type: { kind: "tree", treeType: "maple" },
+            type: { kind: "tree", treeType: "heart" },
             pos: [8, 3],
             resourceAmount: 4,
             maxResource: 4,
