@@ -141,7 +141,7 @@ export default function Home() {
                             <meshStandardMaterial color={drop.itemKey === 'bone' ? 'white' : 'yellow'} />
                         </mesh>
                     ))}
-                    <ambientLight intensity={0.5} />
+                    <ambientLight intensity={0.8} />
                     <pointLight position={[10, 10, 10]} />
                 </Canvas>
             </div>

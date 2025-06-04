@@ -30,6 +30,88 @@ export function generateHeight(width: number, height: number) {
     return data;
 }
 
+// Utility to generate a texture from height data (similar to Terrain)
+function generateTexture(data: Uint8Array, width: number, height: number) {
+    // Define color channel multipliers for green terrain
+
+    // Dirt biome
+    // const RED_BASE = 96;
+    // const RED_SHADE = 128;
+    // const GREEN_BASE = 32;
+    // const GREEN_SHADE = 96;
+    // const BLUE_BASE = 0;
+    // const BLUE_SHADE = 96;
+
+    // Grass biome (lighter)
+    const RED_BASE = 64;
+    const RED_SHADE = 64;
+    const GREEN_BASE = 128;
+    const GREEN_SHADE = 160;
+    const BLUE_BASE = 64;
+    const BLUE_SHADE = 64;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d');
+    if (!context) return null;
+
+    context.fillStyle = '#000';
+    context.fillRect(0, 0, width, height);
+
+    const image = context.getImageData(0, 0, canvas.width, canvas.height);
+    const imageData = image.data;
+
+    const sun = new THREE.Vector3(1, 1, 1);
+    sun.normalize();
+    const vector3 = new THREE.Vector3(0, 0, 0);
+
+    for (let i = 0, j = 0, l = imageData.length; i < l; i += 4, j++) {
+        // Calculate normal for shading
+        vector3.x = data[j - 2] - data[j + 2] || 0;
+        vector3.y = 2;
+        vector3.z = data[j - width * 2] - data[j + width * 2] || 0;
+        vector3.normalize();
+        const shade = vector3.dot(sun);
+        // Use variables for color channels
+        imageData[i] = (RED_BASE + shade * RED_SHADE) * (0.5 + data[j] * 0.007);      // Red (lower)
+        imageData[i + 1] = (GREEN_BASE + shade * GREEN_SHADE) * (0.5 + data[j] * 0.007); // Green (higher)
+        imageData[i + 2] = (BLUE_BASE + shade * BLUE_SHADE) * (0.5 + data[j] * 0.007);  // Blue (lower)
+        imageData[i + 3] = 255;
+    }
+    context.putImageData(image, 0, 0);
+
+    // Optionally scale up for more detail
+    const canvasScaled = document.createElement('canvas');
+    canvasScaled.width = width * 4;
+    canvasScaled.height = height * 4;
+    const scaledContext = canvasScaled.getContext('2d');
+    if (scaledContext) {
+        scaledContext.scale(4, 4);
+        scaledContext.drawImage(canvas, 0, 0);
+        const scaledImage = scaledContext.getImageData(0, 0, canvasScaled.width, canvasScaled.height);
+        const scaledData = scaledImage.data;
+        for (let i = 0, l = scaledData.length; i < l; i += 4) {
+            const v = ~~(Math.random() * 5);
+            scaledData[i] += v;
+            scaledData[i + 1] += v;
+            scaledData[i + 2] += v;
+        }
+        scaledContext.putImageData(scaledImage, 0, 0);
+        const texture = new THREE.CanvasTexture(canvasScaled);
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.colorSpace = THREE.SRGBColorSpace;
+        return texture;
+    }
+    // Fallback
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.wrapS = THREE.ClampToEdgeWrapping;
+    texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+}
+
 export default function MapGrid({
     width = 32,
     depth = 32,
@@ -103,6 +185,9 @@ export default function MapGrid({
         );
     }, [debug, width, depth, tileSize, heightData]);
 
+    // Generate texture from height data
+    const texture = useMemo(() => generateTexture(heightData, width, depth), [heightData, width, depth]);
+
     return (
         <>
             <mesh
@@ -121,7 +206,11 @@ export default function MapGrid({
                     }
                 }}
             >
-                <meshStandardMaterial color={"#bfcdb7"} />
+                {texture ? (
+                    <meshStandardMaterial map={texture} />
+                ) : (
+                    <meshStandardMaterial color={"#bfcdb7"} />
+                )}
             </mesh>
             {debug && gridLines && (
                 <lineSegments geometry={gridLines} position={[-tileSize / 2, 0, -tileSize / 2]}>
