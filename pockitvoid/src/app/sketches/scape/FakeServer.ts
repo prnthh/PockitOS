@@ -358,7 +358,7 @@ if (mapEntities.length === 0) {
         {
             id: "ore1",
             type: { kind: "ore", oreType: "copper" },
-            pos: [5, 5],
+            pos: [0, 0],
             resourceAmount: 3,
             maxResource: 3,
             depleted: false,

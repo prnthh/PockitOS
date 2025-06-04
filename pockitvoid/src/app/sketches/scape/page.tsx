@@ -8,6 +8,8 @@ import { useState, useRef, useEffect } from "react";
 import FakeServer from "./FakeServer";
 import { MapEntity } from "./MapEntity";
 import { InventoryUI } from "./ui/Inventory";
+import MapGrid from "./MapGrid";
+import { Box } from "@react-three/drei";
 
 const TILE_SIZE = 0.66; // Size of each tile in the tilemap
 
@@ -57,8 +59,17 @@ export default function Home() {
         <div className="items-center justify-items-center min-h-screen">
             <div className="w-full" style={{ height: "100vh" }}>
                 <Canvas>
-                    {/* todo optimise tile drawing so it doesnt refresh every tick */}
-                    <MapGrid playerId={playerId} setNavPointer={setNavPointer} />
+                    {/* Use new MapGrid for terrain and tile rendering */}
+                    <MapGrid
+                        debug
+                        width={16}
+                        depth={16}
+                        tileSize={TILE_SIZE}
+                        onTileClick={({ i, j, x, y, z }) => {
+                            FakeServer.setAction(playerId, { type: "walkTo", pos: [i, j] });
+                            setNavPointer([x, y, z]);
+                        }}
+                    />
                     {/* NavPointer debug cube */}
                     {navPointer && (
                         <mesh position={navPointer}>
@@ -70,7 +81,7 @@ export default function Home() {
                     {entities.map(entity => (
                         <mesh
                             key={entity.id}
-                            position={[(entity.pos[0] - 4.5) * TILE_SIZE, -1.7 * TILE_SIZE, (entity.pos[1] - 4.5) * TILE_SIZE]}
+                            position={[(entity.pos[0]) * TILE_SIZE, 0.2, (entity.pos[1]) * TILE_SIZE]}
                             onClick={e => {
                                 e.stopPropagation();
                                 handleEntityClick(entity);
@@ -92,7 +103,7 @@ export default function Home() {
                             <Player
                                 key={id}
                                 health={state.health}
-                                position={[(state.pos[0] - 4.5) * TILE_SIZE, -1.5 * TILE_SIZE, (state.pos[1] - 4.5) * TILE_SIZE]}
+                                position={[(state.pos[0]) * TILE_SIZE, 0.3, (state.pos[1]) * TILE_SIZE]}
                                 color={id === playerId ? "orange" : "blue"}
                                 onClick={e => {
                                     e.stopPropagation();
@@ -105,7 +116,7 @@ export default function Home() {
                     {drops.map(drop => (
                         <mesh
                             key={drop.id}
-                            position={[(drop.pos[0] - 4.5) * TILE_SIZE, -1.8 * TILE_SIZE, (drop.pos[1] - 4.5) * TILE_SIZE]}
+                            position={[(drop.pos[0]) * TILE_SIZE, 0, (drop.pos[1]) * TILE_SIZE]}
                             onClick={e => {
                                 e.stopPropagation();
                                 handleDropClick(drop.id);
@@ -123,27 +134,3 @@ export default function Home() {
         </div>
     );
 }
-
-
-const MapGrid = ({ playerId, setNavPointer }: { playerId: string, setNavPointer: (pos: [number, number, number]) => void }) => {
-    // Click a tile to walk to it
-    const handleTileClick = (i: number, j: number) => {
-        FakeServer.setAction(playerId, { type: "walkTo", pos: [i, j] });
-    };
-    const handleTilePointer = (e: any) => {
-        if (e && e.point) {
-            setNavPointer([e.point.x, e.point.y, e.point.z]);
-        }
-    };
-    return FakeServer.getTilemap().map((row: number[], i: number) =>
-        row.map((tile: number, j: number) => (
-            <Tile
-                key={`tile-${i}-${j}`}
-                position={[(i - 4.5) * TILE_SIZE, -2 * TILE_SIZE, (j - 4.5) * TILE_SIZE]}
-                type={tile}
-                onClick={() => handleTileClick(i, j)}
-                onTileClick={handleTilePointer}
-            />
-        ))
-    )
-};

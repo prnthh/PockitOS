@@ -148,6 +148,7 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, c
       {/* HP Bar and Damage Bubble */}
       <Html center position={[position[0], position[1] + .7, position[2]]} style={{ pointerEvents: "none", minWidth: 60 }}>
         <div style={{ position: 'relative', width: 50, height: 14 }}>
+          {JSON.stringify(position)}
           {/* HP Bar */}
           <div style={{
             width: '100%',
