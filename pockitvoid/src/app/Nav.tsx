@@ -6,19 +6,20 @@ import { usePathname } from "next/navigation";
 
 const allExperiments = [
     'barebones',
-    'floor/ground', 'floor/terrainCollider', 'floor/terrain2',
+    'floor/ground', 'floor/terrainCollider', 'floor/heightmap',
     'lighting/simple', 'lighting/shadowmap', 'lighting/cascading', 'lighting/probe',
+    'instancing/simple', 'instancing/merged',
+    'controllers/wawa', 'controllers/shouldercam', 'controllers/click', 'controllers/isocam', 'controllers/animations',
     'car/simple', 'car/model', 'car/road', 'car/driver',
+    'editor/events', 'editor/store',
+    'ik/ragdoll', 'ik/kick', 'ik/crawler',
+    'retargeting/basic', 'retargeting/variety',
     'interior',
     'particles', 'webgpu',
-    'ik/ragdoll', 'ik/kick', 'ik/crawler',
-    'controllers/wawa', 'controllers/shouldercam', 'controllers/click', 'controllers/isocam', 'controllers/animations',
-    'editor/events', 'editor/store',
     'npc', 'scape',
-    'retargeting/basic', 'retargeting/variety',
     'xr',
     'milady/chess', 'milady/surfer',
-    'playground', '../wfc/index.html',
+    '../wfc/index.html',
 ].map(e => `sketches/${e}`); // Prefix all with 'sketches/'
 
 const geistMono = Geist_Mono({
