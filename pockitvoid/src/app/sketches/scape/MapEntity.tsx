@@ -34,7 +34,6 @@ export function MapEntityMesh({ entity, position, onClick }: MapEntityMeshProps)
 
     if (entity.type.kind === "tree") {
         if (entity.depleted) {
-            // Show nothing if depleted
             return null;
         }
         return (
@@ -48,6 +47,9 @@ export function MapEntityMesh({ entity, position, onClick }: MapEntityMeshProps)
             </group>
         );
     } else if (entity.type.kind === "ore") {
+        if (entity.depleted) {
+            return null;
+        }
         return (
             <group position={position} onClick={onClick} /* @ts-ignore */ userData={{ entityId: entity.id }}>
                 <primitive

@@ -221,7 +221,7 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, c
           onClick={onClick}
           scale={0.8}
         />
-        {color == 'orange' && <OrbitCam maxPolar={Math.PI / 2.2} />}
+        {color == 'orange' && <OrbitCam maxRadius={6} maxPolar={Math.PI / 2.2} />}
       </group>
       {/* HP Bar and Damage Bubble */}
       <Html center position={[position[0], position[1] + .7, position[2]]} style={{ pointerEvents: "none", minWidth: 60 }}>
