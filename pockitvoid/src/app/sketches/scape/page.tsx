@@ -4,7 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import Player from "./Player";
 import { useState, useRef, useEffect } from "react";
 import FakeServer from "./FakeServer";
-import { MapEntity } from "./MapEntity";
+import { MapEntity, MapEntityMesh } from "./MapEntity";
 import { InventoryUI } from "./ui/Inventory";
 import MapGrid, { generateHeight } from "./MapGrid";
 
@@ -82,43 +82,63 @@ export default function Home() {
                     )}
                     {/* Render map entities (trees, ores) */}
                     {entities.map(entity => (
-                        <mesh
+                        <MapEntityMesh
                             key={entity.id}
-                            position={[(entity.pos[0]) * TILE_SIZE, getY(entity.pos[0], entity.pos[1]), (entity.pos[1]) * TILE_SIZE]}
+                            entity={entity}
+                            position={[
+                                (entity.pos[0]) * TILE_SIZE,
+                                getY(entity.pos[0], entity.pos[1]),
+                                (entity.pos[1]) * TILE_SIZE
+                            ]}
                             onClick={e => {
                                 e.stopPropagation();
                                 handleEntityClick(entity);
                             }}
-                        >
-                            {/* Use different geometry/material for trees vs ores */}
-                            {entity.type.kind === "tree" ? (
-                                <cylinderGeometry args={[0.13 * TILE_SIZE, 0.18 * TILE_SIZE, 0.5 * TILE_SIZE, 12]} />
-                            ) : (
-                                <sphereGeometry args={[0.18 * TILE_SIZE, 12, 12]} />
-                            )}
-                            <meshStandardMaterial color={
-                                entity.depleted ? "gray" : entity.type.kind === "tree" ? "#228B22" : "#888888"
-                            } opacity={entity.depleted ? 0.5 : 1} transparent />
-                        </mesh>
+                        />
                     ))}
-                    {Object.entries(allPlayers).map(([id, state]) => (
-                        <group key={id}>
-                            <Player
-                                key={id}
-                                health={state.health}
-                                position={[
-                                    (state.pos[0]) * TILE_SIZE,
-                                    getY(state.pos[0], state.pos[1]) + 0.3,
-                                    (state.pos[1]) * TILE_SIZE
-                                ]}
-                                color={id === playerId ? "orange" : "blue"}
-                                onClick={e => {
-                                    e.stopPropagation();
-                                    handlePlayerClick(id);
-                                }}
-                            />
-                        </group>
-                    ))}
+                    {Object.entries(allPlayers).map(([id, state]) => {
+                        const currentAction = FakeServer.getCurrentAction(id);
+                        let targetPosition: [number, number, number] | undefined = undefined;
+                        if (currentAction === "attack" && state.currentGoal && state.currentGoal.targetId) {
+                            const target = allPlayers[state.currentGoal.targetId];
+                            if (target) {
+                                targetPosition = [
+                                    (target.pos[0]) * TILE_SIZE,
+                                    getY(target.pos[0], target.pos[1]) + 0.3,
+                                    (target.pos[1]) * TILE_SIZE
+                                ];
+                            }
+                        } else if (currentAction === "extract" && state.currentGoal && state.currentGoal.entityId) {
+                            const entity = entities.find(e => e.id === state.currentGoal.entityId);
+                            if (entity) {
+                                targetPosition = [
+                                    (entity.pos[0]) * TILE_SIZE,
+                                    getY(entity.pos[0], entity.pos[1]),
+                                    (entity.pos[1]) * TILE_SIZE
+                                ];
+                            }
+                        }
+                        return (
+                            <group key={id}>
+                                <Player
+                                    key={id}
+                                    health={state.health}
+                                    position={[
+                                        (state.pos[0]) * TILE_SIZE,
+                                        getY(state.pos[0], state.pos[1]) + 0.3,
+                                        (state.pos[1]) * TILE_SIZE
+                                    ]}
+                                    color={id === playerId ? "orange" : "blue"}
+                                    onClick={e => {
+                                        e.stopPropagation();
+                                        handlePlayerClick(id);
+                                    }}
+                                    currentAction={currentAction}
+                                    targetPosition={targetPosition}
+                                />
+                            </group>
+                        );
+                    })}
                     {/* Render drops */}
                     {drops.map(drop => (
                         <mesh

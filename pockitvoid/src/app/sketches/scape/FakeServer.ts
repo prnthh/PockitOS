@@ -15,6 +15,7 @@ interface PlayerState {
     currentGoal?: PlayerGoal;
     health: number;
     actionCooldown?: number; // ticks left before next action
+    currentAction?: string; // one-tick action state
 }
 
 // Drop type and drops list
@@ -143,6 +144,11 @@ function getEntity(entityId: string): MapEntity | undefined {
 
 // --- Single global tick function ---
 function globalTick() {
+    // Clear currentAction for all players at the start of the tick
+    for (const playerId in players) {
+        const player = players[playerId];
+        player.currentAction = undefined;
+    }
     // Tick all players
     for (const playerId in players) {
         const player = players[playerId];
@@ -191,6 +197,7 @@ function globalTick() {
             } else {
                 target.health = Math.max(0, target.health - 1);
                 player.actionCooldown = 2;
+                player.currentAction = "attack"; // Set action for this tick
                 if (!target.currentGoal) {
                     target.currentGoal = { type: "attack", targetId: playerId };
                 }
@@ -248,7 +255,7 @@ function globalTick() {
                 if (entity.type.kind === "ore") itemKey = entity.type.oreType + "_ore";
                 FakeServer.addToInventory(playerId, itemKey, 1);
                 player.actionCooldown = RESOURCE_EXTRACTION_COOLDOWN;
-                // If depleted, clear action
+                player.currentAction = "extract"; // Set action only while extracting
                 if (entity.depleted) player.currentGoal = undefined;
             }
         }
@@ -332,6 +339,9 @@ const FakeServer = {
     // New: get all entities
     getEntities() {
         return mapEntities;
+    },
+    getCurrentAction(playerId: string) {
+        return getPlayer(playerId)?.currentAction;
     }
 };
 
