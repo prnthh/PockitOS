@@ -28,32 +28,35 @@ interface MapEntityMeshProps {
 }
 
 export function MapEntityMesh({ entity, position, onClick }: MapEntityMeshProps) {
-    // Load GLTF model for ores
+    // Load GLTF models
     const rocks = useGLTF("/models/environment/rocks.glb");
+    const tree = useGLTF("/models/environment/tree.glb");
 
     if (entity.type.kind === "tree") {
+        if (entity.depleted) {
+            // Show nothing if depleted
+            return null;
+        }
         return (
-            <mesh position={position} onClick={onClick}>
-                <cylinderGeometry args={[0.13 * 0.66, 0.18 * 0.66, 0.5 * 0.66, 12]} />
-                <meshStandardMaterial
-                    color={entity.depleted ? "gray" : "#228B22"}
-                    opacity={entity.depleted ? 0.5 : 1}
-                    transparent
+            <group position={position} onClick={onClick} /* @ts-ignore */ userData={{ entityId: entity.id }}>
+                <primitive
+                    object={tree.scene}
+                    scale={[0.66, 0.66, 0.66]}
+                    // @ts-ignore
+                    userData={{ entityId: entity.id }}
                 />
-            </mesh>
+            </group>
         );
     } else if (entity.type.kind === "ore") {
         return (
-            <primitive
-                object={rocks.scene}
-                position={position}
-                scale={[0.18 * 0.66, 0.18 * 0.66, 0.18 * 0.66]}
-                onClick={onClick}
-                // @ts-ignore
-                userData={{ entityId: entity.id }}
-            >
-                {/* Optionally, you can add a meshStandardMaterial override here if needed */}
-            </primitive>
+            <group position={position} onClick={onClick} /* @ts-ignore */ userData={{ entityId: entity.id }}>
+                <primitive
+                    object={rocks.scene}
+                    scale={[0.18 * 0.66, 0.18 * 0.66, 0.18 * 0.66]}
+                    // @ts-ignore
+                    userData={{ entityId: entity.id }}
+                />
+            </group>
         );
     }
     return null;
@@ -61,3 +64,4 @@ export function MapEntityMesh({ entity, position, onClick }: MapEntityMeshProps)
 
 // For drei GLTF loader
 useGLTF.preload("/models/environment/rocks.glb");
+useGLTF.preload("/models/environment/tree.glb");
