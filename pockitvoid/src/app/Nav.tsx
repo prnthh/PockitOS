@@ -19,7 +19,7 @@ const allExperiments = [
     'npc', 'scape',
     'xr',
     'milady/chess', 'milady/surfer',
-    '../wfc/index.html',
+    '../wfc/index.html', '../chainreaction.html'
 ].map(e => `sketches/${e}`); // Prefix all with 'sketches/'
 
 const geistMono = Geist_Mono({
