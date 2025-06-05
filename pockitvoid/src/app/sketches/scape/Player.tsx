@@ -20,6 +20,7 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, c
   const groupRef = useRef<THREE.Group>(null);
   const rotationTweenRef = useRef<Tween<{ y: number }> | null>(null);
   const [animation, setAnimation] = useState("idle");
+  const prevAnimationRef = useRef<string>("idle"); // Track previous animation
   // --- Damage bubble state ---
   const [damage, setDamage] = useState<number | null>(null);
   const [showDamage, setShowDamage] = useState(false);
@@ -27,6 +28,7 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, c
   const lastTweenedPosRef = useRef<THREE.Vector3>(new THREE.Vector3(...position));
   const targetPosRef = useRef<THREE.Vector3>(new THREE.Vector3(...position));
   const movingRef = useRef(false);
+  const animationTimeout = useRef<NodeJS.Timeout | null>(null);
 
   // Forward the ref
   useEffect(() => {
@@ -96,7 +98,17 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, c
       const dmg = prevHealthRef.current - health;
       setDamage(dmg);
       setShowDamage(true);
-      setTimeout(() => setShowDamage(false), 500);
+      setTimeout(() => setShowDamage(false), 500); // Damage popup timeout (not ref)
+      // Play hurt animation once, then revert
+      prevAnimationRef.current = animation;
+      setAnimation("hurt");
+      // Clear previous animation revert timeout to prevent overlap
+      if (animationTimeout.current) {
+        clearTimeout(animationTimeout.current);
+      }
+      animationTimeout.current = setTimeout(() => {
+        setAnimation(movingRef.current ? "walk" : "idle");
+      }, 600); // Adjust duration to match hurt anim length
     }
     prevHealthRef.current = health;
   }, [health]);
@@ -139,6 +151,10 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, c
           debug={true}
           model={"/models/rigga.glb"}
           animation={animation}
+          animationOverrides={{
+            'punch': '/anim/punch.fbx',
+            'hurt': '/anim/hurt.fbx',
+          }}
           height={0.95}
           onClick={onClick}
           scale={0.8}
