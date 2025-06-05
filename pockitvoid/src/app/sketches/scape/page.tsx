@@ -7,27 +7,19 @@ import FakeServer from "./FakeServer";
 import { MapEntity } from "./MapEntity";
 import { InventoryUI } from "./ui/Inventory";
 import MapGrid, { generateHeight } from "./MapGrid";
-import { Box } from "@react-three/drei";
-import * as THREE from "three";
 
 const TILE_SIZE = 0.66; // Size of each tile in the tilemap
 const GRID_WIDTH = 16;
 const GRID_DEPTH = 16;
 
 export default function Home() {
-    // Store playerId in React state (not persisted)
     const [playerId] = useState(() => Math.random().toString(36).slice(2) + Date.now());
 
-    // Generate map height data once in the parent (must be inside component)
     const [heightData] = useState(() => generateHeight(GRID_WIDTH, GRID_DEPTH));
 
     const [playerPos, setPlayerPos] = useState(FakeServer.getPlayerPos(playerId));
-    // Remove targetPos, use currentAction
-    // Get all players for rendering
     const [allPlayers, setAllPlayers] = useState(FakeServer.getAllPlayers());
-    // Track drops for rendering
     const [drops, setDrops] = useState(FakeServer.getDrops());
-    // Track map entities for rendering
     const [entities, setEntities] = useState<MapEntity[]>(FakeServer.getEntities());
     const [navPointer, setNavPointer] = useState<[number, number, number] | null>(null); // NavPointer world coords
     useEffect(() => {
@@ -43,19 +35,19 @@ export default function Home() {
     // Click a player to attack them
     const handlePlayerClick = (targetId: string) => {
         if (targetId !== playerId) {
-            FakeServer.setAction(playerId, { type: "attack", targetId });
+            FakeServer.setGoal(playerId, { type: "attack", targetId });
         }
     };
 
     // Click a drop to pick it up
     const handleDropClick = (dropId: string) => {
-        FakeServer.setAction(playerId, { type: "pickupDrop", dropId });
+        FakeServer.setGoal(playerId, { type: "pickupDrop", dropId });
     };
 
     // Click a map entity to extract resource
     const handleEntityClick = (entity: MapEntity) => {
         if (!entity.depleted && entity.resourceAmount > 0) {
-            FakeServer.setAction(playerId, { type: "extractResource", entityId: entity.id });
+            FakeServer.setGoal(playerId, { type: "extractResource", entityId: entity.id });
         }
     };
 
@@ -72,13 +64,12 @@ export default function Home() {
                 <Canvas shadows>
                     {/* Use new MapGrid for terrain and tile rendering */}
                     <MapGrid
-                        debug
                         width={GRID_WIDTH}
                         depth={GRID_DEPTH}
                         tileSize={TILE_SIZE}
                         heightData={heightData}
                         onTileClick={({ i, j, x, y, z }) => {
-                            FakeServer.setAction(playerId, { type: "walkTo", pos: [i, j] });
+                            FakeServer.setGoal(playerId, { type: "walkTo", pos: [i, j] });
                             setNavPointer([x, getY(i, j), z]);
                         }}
                     />

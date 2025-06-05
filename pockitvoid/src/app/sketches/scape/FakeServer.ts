@@ -3,7 +3,7 @@ import { MapEntity, MapEntityType } from "./MapEntity";
 // Centralized fake server for game state
 
 // Action types
-type PlayerAction = 
+type PlayerGoal = 
     | { type: "walkTo", pos: [number, number] }
     | { type: "attack", targetId: string }
     | { type: "pickUp", itemId: string }
@@ -12,7 +12,7 @@ type PlayerAction =
 
 interface PlayerState {
     pos: [number, number];
-    currentAction?: PlayerAction;
+    currentGoal?: PlayerGoal;
     health: number;
     actionCooldown?: number; // ticks left before next action
 }
@@ -150,21 +150,21 @@ function globalTick() {
             player.actionCooldown -= 1;
             continue;
         }
-        if (!player.currentAction) continue;
-        const action = player.currentAction;
-        if (action.type === "walkTo") {
-            player.pos = getStep(player.pos, action.pos);
+        if (!player.currentGoal) continue;
+        const goal = player.currentGoal;
+        if (goal.type === "walkTo") {
+            player.pos = getStep(player.pos, goal.pos);
             player.actionCooldown = 0;
-            if (player.pos[0] === action.pos[0] && player.pos[1] === action.pos[1]) {
-                player.currentAction = undefined;
+            if (player.pos[0] === goal.pos[0] && player.pos[1] === goal.pos[1]) {
+                player.currentGoal = undefined;
             }
-        } else if (action.type === "attack") {
-            const target = players[action.targetId];
+        } else if (goal.type === "attack") {
+            const target = players[goal.targetId];
             if (!target || target.health <= 0) {
-                player.currentAction = undefined;
+                player.currentGoal = undefined;
                 if (target && target.health <= 0) {
-                    if (target.currentAction && target.currentAction.type === "attack" && target.currentAction.targetId === playerId) {
-                        target.currentAction = undefined;
+                    if (target.currentGoal && target.currentGoal.type === "attack" && target.currentGoal.targetId === playerId) {
+                        target.currentGoal = undefined;
                     }
                     drops.push({
                         id: 'drop_' + Math.random().toString(36).slice(2) + Date.now(),
@@ -181,7 +181,7 @@ function globalTick() {
             // Move to nearest adjacent tile to target
             const adj = getNearestAdjacentTile(player.pos, target.pos[0], target.pos[1]);
             if (!adj) {
-                player.currentAction = undefined;
+                player.currentGoal = undefined;
                 player.actionCooldown = 0;
                 continue;
             }
@@ -191,17 +191,17 @@ function globalTick() {
             } else {
                 target.health = Math.max(0, target.health - 1);
                 player.actionCooldown = 2;
-                if (!target.currentAction) {
-                    target.currentAction = { type: "attack", targetId: playerId };
+                if (!target.currentGoal) {
+                    target.currentGoal = { type: "attack", targetId: playerId };
                 }
             }
-        } else if (action.type === "pickUp") {
-            player.currentAction = undefined;
+        } else if (goal.type === "pickUp") {
+            player.currentGoal = undefined;
             player.actionCooldown = 0;
-        } else if (action.type === "pickupDrop") {
-            const drop = drops.find(d => d.id === action.dropId);
+        } else if (goal.type === "pickupDrop") {
+            const drop = drops.find(d => d.id === goal.dropId);
             if (!drop) {
-                player.currentAction = undefined;
+                player.currentGoal = undefined;
                 player.actionCooldown = 0;
                 continue;
             }
@@ -211,20 +211,20 @@ function globalTick() {
             } else {
                 FakeServer.addToInventory(playerId, drop.itemKey, drop.quantity);
                 drops = drops.filter(d => d.id !== drop.id);
-                player.currentAction = undefined;
+                player.currentGoal = undefined;
                 player.actionCooldown = 0;
             }
-        } else if (action.type === "extractResource") {
-            const entity = getEntity(action.entityId);
+        } else if (goal.type === "extractResource") {
+            const entity = getEntity(goal.entityId);
             if (!entity) {
-                player.currentAction = undefined;
+                player.currentGoal = undefined;
                 player.actionCooldown = 0;
                 continue;
             }
             // Move to nearest adjacent tile to entity
             const adj = getNearestAdjacentTile(player.pos, entity.pos[0], entity.pos[1]);
             if (!adj) {
-                player.currentAction = undefined;
+                player.currentGoal = undefined;
                 player.actionCooldown = 0;
                 continue;
             }
@@ -232,7 +232,7 @@ function globalTick() {
                 player.pos = getStep(player.pos, adj);
                 player.actionCooldown = 0;
             } else if (entity.depleted || entity.resourceAmount <= 0) {
-                player.currentAction = undefined;
+                player.currentGoal = undefined;
                 player.actionCooldown = 0;
             } else {
                 // Extract resource
@@ -249,7 +249,7 @@ function globalTick() {
                 FakeServer.addToInventory(playerId, itemKey, 1);
                 player.actionCooldown = RESOURCE_EXTRACTION_COOLDOWN;
                 // If depleted, clear action
-                if (entity.depleted) player.currentAction = undefined;
+                if (entity.depleted) player.currentGoal = undefined;
             }
         }
     }
@@ -297,11 +297,11 @@ const FakeServer = {
     getPlayerPos(playerId: string) {
         return getPlayer(playerId).pos;
     },
-    setAction(playerId: string, action: PlayerAction) {
-        getPlayer(playerId).currentAction = action;
+    setGoal(playerId: string, goal: PlayerGoal) {
+        getPlayer(playerId).currentGoal = goal;
     },
-    getCurrentAction(playerId: string) {
-        return getPlayer(playerId)?.currentAction;
+    getCurrentGoal(playerId: string) {
+        return getPlayer(playerId)?.currentGoal;
     },
     getAllPlayers() {
         return players;
