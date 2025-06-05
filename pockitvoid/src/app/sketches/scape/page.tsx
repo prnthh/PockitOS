@@ -99,8 +99,14 @@ export default function Home() {
                     {Object.entries(allPlayers).map(([id, state]) => {
                         const currentAction = FakeServer.getCurrentAction(id);
                         let targetPosition: [number, number, number] | undefined = undefined;
-                        if (currentAction === "attack" && state.currentGoal && state.currentGoal.targetId) {
-                            const target = allPlayers[state.currentGoal.targetId];
+                        if (
+                            currentAction === "attack" &&
+                            state.currentGoal &&
+                            state.currentGoal.type === "attack" &&
+                            "targetId" in state.currentGoal
+                        ) {
+                            const targetId = (state.currentGoal as { type: "attack"; targetId: string }).targetId;
+                            const target = allPlayers[targetId];
                             if (target) {
                                 targetPosition = [
                                     (target.pos[0]) * TILE_SIZE,
@@ -108,8 +114,13 @@ export default function Home() {
                                     (target.pos[1]) * TILE_SIZE
                                 ];
                             }
-                        } else if (currentAction === "extract" && state.currentGoal && state.currentGoal.entityId) {
-                            const entity = entities.find(e => e.id === state.currentGoal.entityId);
+                        } else if (
+                            currentAction === "extract" &&
+                            state.currentGoal &&
+                            state.currentGoal.type === "extractResource"
+                        ) {
+                            const entityId = (state.currentGoal as { type: "extractResource"; entityId: string }).entityId;
+                            const entity = entities.find(e => e.id === entityId);
                             if (entity) {
                                 targetPosition = [
                                     (entity.pos[0]) * TILE_SIZE,

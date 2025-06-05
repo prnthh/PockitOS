@@ -43,6 +43,10 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, c
   }, [ref]);
 
   // Helper to get yaw angle to target
+  function normalizeAngle(angle: number) {
+    // Normalize angle to [-π, π]
+    return Math.atan2(Math.sin(angle), Math.cos(angle));
+  }
   function getTargetYaw(from: THREE.Vector3, to: THREE.Vector3) {
     const dx = to.x - from.x;
     const dz = to.z - from.z;
@@ -70,11 +74,12 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, c
       targetPosRef.current.copy(targetPos);
       movingRef.current = true;
       // --- ROTATION ---
-      const currentYaw = group.rotation.y;
-      const targetYaw = getTargetYaw(currentPos, targetPos);
+      let currentYaw = group.rotation.y;
+      let targetYaw = getTargetYaw(currentPos, targetPos);
+      currentYaw = normalizeAngle(currentYaw);
+      targetYaw = normalizeAngle(targetYaw);
       let deltaYaw = targetYaw - currentYaw;
-      if (deltaYaw > Math.PI) deltaYaw -= 2 * Math.PI;
-      if (deltaYaw < -Math.PI) deltaYaw += 2 * Math.PI;
+      deltaYaw = normalizeAngle(deltaYaw); // always shortest path
       const finalYaw = currentYaw + deltaYaw;
       rotationTweenRef.current?.stop();
       const rotObj = { y: currentYaw };
@@ -82,7 +87,7 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, c
         .to({ y: finalYaw }, 200)
         .easing(Easing.Linear.None)
         .onUpdate(() => {
-          if (group) group.rotation.y = rotObj.y;
+          if (group) group.rotation.y = normalizeAngle(rotObj.y);
         });
       tweenGroup.add(rotationTween);
       rotationTween.start();
@@ -148,11 +153,12 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, c
       const group = groupRef.current;
       const currentPos = group.position.clone();
       const targetPos = new THREE.Vector3(...targetPosition);
-      const currentYaw = group.rotation.y;
-      const targetYaw = getTargetYaw(currentPos, targetPos);
+      let currentYaw = group.rotation.y;
+      let targetYaw = getTargetYaw(currentPos, targetPos);
+      currentYaw = normalizeAngle(currentYaw);
+      targetYaw = normalizeAngle(targetYaw);
       let deltaYaw = targetYaw - currentYaw;
-      if (deltaYaw > Math.PI) deltaYaw -= 2 * Math.PI;
-      if (deltaYaw < -Math.PI) deltaYaw += 2 * Math.PI;
+      deltaYaw = normalizeAngle(deltaYaw); // always shortest path
       const finalYaw = currentYaw + deltaYaw;
       rotationTweenRef.current?.stop();
       const rotObj = { y: currentYaw };
@@ -160,7 +166,7 @@ const Player = forwardRef<THREE.Group, PlayerProps>(({ position, health = 100, c
         .to({ y: finalYaw }, 180)
         .easing(Easing.Linear.None)
         .onUpdate(() => {
-          if (group) group.rotation.y = rotObj.y;
+          if (group) group.rotation.y = normalizeAngle(rotObj.y);
         });
       tweenGroup.add(rotationTween);
       rotationTween.start();
