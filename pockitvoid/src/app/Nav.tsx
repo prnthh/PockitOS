@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 const allExperiments = [
     'barebones',
     'floor/ground', 'floor/terrainCollider', 'floor/heightmap',
-    'lighting/simple', 'lighting/shadowmap', 'lighting/cascading', 'lighting/probe',
+    'lighting/simple', 'lighting/shadowmap', 'lighting/cascading', 'lighting/probe', 'lighting/reflection',
     'instancing/simple', 'instancing/merged',
     'controllers/wawa', 'controllers/shouldercam', 'controllers/click', 'controllers/isocam', 'controllers/animations',
     'car/simple', 'car/model', 'car/road', 'car/driver',
@@ -15,7 +15,7 @@ const allExperiments = [
     'ik/ragdoll', 'ik/kick', 'ik/crawler',
     'retargeting/basic', 'retargeting/variety',
     'interior',
-    'particles', 'webgpu',
+    'particles', 'tsl/webgpu', 'tsl/tiny',
     'npc', 'scape',
     'xr',
     'milady/chess', 'milady/surfer',

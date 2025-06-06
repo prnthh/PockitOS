@@ -10,6 +10,10 @@ import { reflector } from 'three/tsl'
 import { gaussianBlur } from 'three/addons/tsl/display/GaussianBlurNode.js'
 import { pass, screenUV, uv, color, texture, normalWorld } from 'three/tsl'
 import { ShinyFloor } from './ShinyFloor'
+import {
+    MeshBasicNodeMaterial,
+    WebGPURenderer,
+} from 'three/webgpu';
 
 declare module '@react-three/fiber' {
     interface ThreeElements extends ThreeToJSXElements<typeof THREE> { }
@@ -110,7 +114,7 @@ export default function App() {
                 <Canvas
                     shadows
                     gl={async (props) => {
-                        const renderer = new THREE.WebGPURenderer(props as any)
+                        const renderer = new WebGPURenderer(props as any)
                         await renderer.init()
                         return renderer
                     }}
