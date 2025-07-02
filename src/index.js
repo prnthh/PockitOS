@@ -19,6 +19,8 @@ class PockitOS {
   static zIndexCounter = 1000;
   static memory = [];
   static kioskMode = false;
+  static _plugin = null;
+  static _plugins = [];
 
   static setKioskMode(enabled) {
     PockitOS.kioskMode = enabled;
@@ -47,11 +49,15 @@ class PockitOS {
 
   /**
    * Accepts either a state array or a DOM string (as shown in debug window) for restoration.
+   * @param {HTMLElement} container - The container element for the OS windows.
+   * @param {Object} options - Options object.
+   * @param {Function} [options.onStateChange] - Callback for state changes.
+   * @param {Array|String} [options.state] - State array or DOM string for restoration.
    */
-  constructor(container = document.body, onStateChange = null, state = null) {
+  constructor(container = document.body, options = {}) {
     this.container = container;
     this.apps = [];
-    this.onStateChange = typeof onStateChange === 'function' ? onStateChange : null;
+    this.onStateChange = typeof options.onStateChange === 'function' ? options.onStateChange : null;
     injectTailwind();
     // Track this instance for kiosk mode
     if (typeof window !== 'undefined') {
@@ -63,16 +69,16 @@ class PockitOS {
     this.saveMenu = new SaveMenu(PockitOS);
 
     // If state is a DOM string (starts with <div), parse and restore
-    if (typeof state === 'string' && state.trim().startsWith('<div')) {
-      PockitOS.restoreAll(container, state);
+    if (typeof options.state === 'string' && options.state.trim().startsWith('<div')) {
+      PockitOS.restoreAll(container, options.state);
       return;
     }
     // If state is an array of objects, restore as before
-    if (Array.isArray(state) && state.length > 0) {
-      PockitOS.memory = state;
-      state.forEach(s => this.createApp(s));
-    } else if (state) {
-      this.createApp(state);
+    if (Array.isArray(options.state) && options.state.length > 0) {
+      PockitOS.memory = options.state;
+      options.state.forEach(s => this.createApp(s));
+    } else if (options.state) {
+      this.createApp(options.state);
     } else {
       this.createApp();
     }
@@ -224,6 +230,17 @@ class PockitOS {
     showDebugWindow();
     updateDebugWindow();
   }
+
+  static loadPlugin(fn, icon = '★') {
+    if (!PockitOS._plugins) PockitOS._plugins = [];
+    PockitOS._plugins.push({ handler: fn, icon });
+    // Inject plugin buttons into all existing apps (no redraw)
+    if (window.PockitOS && window.PockitOS._instances) {
+      window.PockitOS._instances.forEach(os => {
+        if (os.apps) os.apps.forEach(app => app.addPluginButtons());
+      });
+    }
+  }
 }
 
 export default PockitOS;
@@ -231,5 +248,6 @@ export default PockitOS;
 // Attach to window for UMD/global usage
 if (typeof window !== 'undefined') {
   window.PockitOS = PockitOS;
-  // Do not push prototype, only real instances in constructor
+  window.PockitApp = PockitApp;
+  window.Modal = Modal;
 }

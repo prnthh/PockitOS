@@ -7,7 +7,8 @@
   "type": "module",
   "scripts": {
     "build": "vite build",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "npm run build",
+    "dev": "nodemon --watch src --watch index.html --ext js,html --exec \"npm run build\""
   },
   "files": [
     "dist",
@@ -17,5 +18,8 @@
   "license": "NITTE",
   "devDependencies": {
     "vite": "^6.3.5"
+  },
+  "dependencies": {
+    "nodemon": "^3.1.10"
   }
 }

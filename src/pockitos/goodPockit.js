@@ -86,3 +86,40 @@ const iframe = `
   <iframe src="https://cult.inc/chat" style="width: 100%; height: 100%; border: none;"></iframe>
 </div> 
 `;
+
+
+// const glsl = ```
+// <div id="shader-container" style="width: 500px; height: 500px;">
+//   <canvas id="shader-canvas" width="500" height="500"></canvas>
+// </div>
+
+// <script src="https://cdn.jsdelivr.net/gh/patriciogonzalezvivo/glslCanvas@master/dist/GlslCanvas.js"></script>
+// <script>
+//   // Defer logic until canvas is in the DOM and script is loaded
+//   function initShader() {
+//     const canvas = document.getElementById("shader-canvas");
+//     if (!canvas || !window.GlslCanvas) {
+//       requestAnimationFrame(initShader); // Try again shortly
+//       return;
+//     }
+
+//     const frag = `
+//       precision mediump float;
+//       uniform vec2 u_resolution;
+//       uniform float u_time;
+
+//       void main() {
+//         vec2 st = gl_FragCoord.xy / u_resolution.xy;
+//         vec3 color = vec3(st.x, st.y, abs(sin(u_time)));
+//         gl_FragColor = vec4(color, 1.0);
+//       }
+//     `;
+
+//     canvas.setAttribute("data-fragment", frag);
+//     new GlslCanvas(canvas);
+//   }
+
+//   initShader();
+// </script>
+
+// ```;

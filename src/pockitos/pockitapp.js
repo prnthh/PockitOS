@@ -12,18 +12,46 @@ class PockitApp {
     this.state ? this.setPosition(this.state) : this.centerInContainer();
     this.makeDraggable();
     this.element.id = this.id;
+    // Add edit mode bg/blur Tailwind classes by default (edit mode)
+    this.element.classList.add('bg-white/60', 'backdrop-blur');
     this.q('textarea').addEventListener('input', () => this.onContentChange?.());
+    // Add all plugin buttons if plugins are loaded
+    if (window.PockitOS && Array.isArray(window.PockitOS._plugins)) this.addPluginButtons();
+  }
+
+  // Dynamically add plugin buttons for all loaded plugins
+  addPluginButtons() {
+    if (!window.PockitOS || !Array.isArray(window.PockitOS._plugins)) return;
+    const btns = this.element.querySelector('.buttons');
+    if (!btns) return;
+    window.PockitOS._plugins.forEach((plugin, idx) => {
+      // Avoid duplicate buttons
+      if (btns.querySelector(`.btn-plugin[data-plugin-idx="${idx}"]`)) return;
+      const btn = document.createElement('button');
+      btn.className = 'btn-plugin w-6 h-6 flex items-center justify-center bg-yellow-400 hover:bg-yellow-500 transition mr-1';
+      btn.style.borderRadius = '0';
+      btn.setAttribute('data-plugin-idx', idx);
+      btn.innerHTML = plugin.icon || '★';
+      btn.onclick = () => plugin.handler(this);
+      btns.insertBefore(btn, btns.firstChild);
+    });
   }
 
   createUI(state = null) {
     const wrapper = document.createElement('div');
-    wrapper.className = 'pockit-os-window fixed bg-white min-w-[300px] min-h-[150px]';
+    wrapper.className = 'pockit-os-window fixed min-w-[300px] min-h-[150px]';
     wrapper.style.cssText = 'z-index:1000;position:absolute;border:none;';
     const idToShow = this.id;
+    // Build buttons HTML, plugin button if plugin loaded at OS level
+    let pluginBtnHtml = '';
+    if (window.PockitOS && window.PockitOS._plugin) {
+      pluginBtnHtml = `<button class="btn-plugin w-6 h-6 flex items-center justify-center bg-yellow-400 hover:bg-yellow-500 transition mr-1" style="border-radius:0;">★</button>`;
+    }
     wrapper.innerHTML = `
       <div class="title-bar flex items-center justify-between px-3 py-2 bg-gray-800 cursor-move select-none" style="border-radius:0;padding:0;opacity:1;">
         <span class='text-xs text-gray-300 ml-2 pockit-id-span'>[${idToShow}]</span>
         <div class="buttons flex">
+          ${pluginBtnHtml}
           <button class="btn-add w-6 h-6 flex items-center justify-center bg-green-500 hover:bg-green-600 transition" style="border-radius:0;">+</button>
           <button class="btn-eye w-6 h-6 flex items-center justify-center bg-blue-500 hover:bg-blue-600 transition" style="border-radius:0;">👁️</button>
           <button class="btn-close w-6 h-6 flex items-center justify-center bg-red-500 hover:bg-red-600 transition" style="border-radius:0;">🗑️</button>
@@ -40,6 +68,11 @@ class PockitApp {
     let isRendered = false;
     wrapper.querySelector('.btn-eye').onclick = () => { this.setViewMode(!isRendered); isRendered = !isRendered; };
     wrapper.querySelector('textarea').addEventListener('input', () => { if (isRendered) this.setViewMode(true); });
+    // Plugin button handler
+    if (window.PockitOS && window.PockitOS._plugin) {
+      const btnPlugin = wrapper.querySelector('.btn-plugin');
+      if (btnPlugin) btnPlugin.onclick = () => window.PockitOS._plugin(this);
+    }
     return wrapper;
   }
 
@@ -118,44 +151,43 @@ class PockitApp {
   setViewMode(isView) {
     const btnEye = this.q('.btn-eye'), textarea = this.q('textarea'), renderedDiv = this.q('.rendered-content'), titleBar = this.q('.title-bar');
     if (!btnEye) return;
+    const wrapper = this.element;
+    // Always remove previously injected scripts
+    this._injectedModuleScripts?.forEach(s => s.remove());
+    this._injectedModuleScripts = [];
     if (isView) {
-      this._injectedModuleScripts?.forEach(s => s.remove());
-      this._injectedModuleScripts = [];
       renderedDiv.innerHTML = '';
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = textarea.value;
-      tempDiv.querySelectorAll('script[type="module"]').forEach(script => {
+      tempDiv.querySelectorAll('script').forEach(script => {
         const newScript = document.createElement('script');
-        newScript.type = 'module';
+        for (const attr of script.attributes) newScript.setAttribute(attr.name, attr.value);
         newScript.textContent = script.textContent;
-        document.body.appendChild(newScript);
-        (this._injectedModuleScripts ||= []).push(newScript);
+        if (script.type === 'importmap') {
+          if (!document.querySelector('script[type="importmap"][data-pockit]')) {
+            newScript.setAttribute('data-pockit', 'true');
+            document.head.appendChild(newScript);
+            (this._injectedModuleScripts ||= []).push(newScript);
+          }
+        } else {
+          document.body.appendChild(newScript);
+          (this._injectedModuleScripts ||= []).push(newScript);
+        }
         script.remove();
       });
-      const importmapScript = tempDiv.querySelector('script[type="importmap"]');
-      if (importmapScript && !document.querySelector('script[type="importmap"][data-pockit]')) {
-        const newImportmap = document.createElement('script');
-        newImportmap.type = 'importmap';
-        newImportmap.setAttribute('data-pockit', 'true');
-        newImportmap.textContent = importmapScript.textContent;
-        document.head.appendChild(newImportmap);
-        importmapScript.remove();
-      }
       while (tempDiv.firstChild) renderedDiv.appendChild(tempDiv.firstChild);
       textarea.style.display = 'none';
       renderedDiv.style.display = '';
-      btnEye.textContent = '\u270f\ufe0f';
-      this.element.style.border = 'none';
       if (titleBar) titleBar.style.opacity = '0.5';
+      wrapper.classList.remove('bg-white/60', 'backdrop-blur');
     } else {
-      this._injectedModuleScripts?.forEach(s => s.remove());
-      this._injectedModuleScripts = [];
       textarea.style.display = '';
       renderedDiv.style.display = 'none';
-      btnEye.textContent = '\ud83d\udc41\ufe0f';
-      this.element.style.border = 'none';
       if (titleBar) titleBar.style.opacity = '1';
+      wrapper.classList.add('bg-white/60', 'backdrop-blur');
     }
+    btnEye.textContent = '👁️';
+    this.element.style.border = 'none';
   }
 }
 
