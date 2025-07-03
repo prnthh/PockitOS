@@ -54,8 +54,9 @@ class PockitApp {
         <span class='text-xs text-gray-300 ml-2 pockit-id-span'>[${idToShow}]</span>
         <div class="buttons flex">
           ${pluginBtnHtml}
-          <button class="btn-add w-6 h-6 flex items-center justify-center bg-green-500 hover:bg-green-600 transition" style="border-radius:0;">👯‍♀️</button>
-          <button class="btn-eye w-6 h-6 flex items-center justify-center bg-blue-500 hover:bg-blue-600 transition" style="border-radius:0;">✏️</button>
+          <button class="btn-eye w-6 h-6 flex items-center justify-center bg-green-500 hover:bg-blue-600 transition" style="border-radius:0;">✏️</button>
+          <button class="btn-sendback w-6 h-6 flex items-center justify-center bg-gray-500 hover:bg-gray-600 transition" style="border-radius:0;">⏬</button>
+          <button class="btn-add w-6 h-6 flex items-center justify-center bg-blue-500 hover:bg-green-600 transition" style="border-radius:0;">👯‍♀️</button>
           <button class="btn-close w-6 h-6 flex items-center justify-center bg-red-500 hover:bg-red-600 transition" style="border-radius:0;">🗑️</button>
         </div>
       </div>
@@ -77,6 +78,10 @@ class PockitApp {
     };
     wrapper.querySelector('.btn-eye').onclick = () => {
       this.setViewMode(!this.isRendered);
+    };
+    wrapper.querySelector('.btn-sendback').onclick = () => {
+      this.setZIndex(1);
+      this.updateMemory?.();
     };
     wrapper.querySelector('textarea').addEventListener('input', () => { if (this.isRendered) this.setViewMode(true); });
     // Plugin button handler
@@ -266,7 +271,6 @@ class PockitApp {
         titleBar.classList.add('opacity-50');
       }
       wrapper.classList.remove('bg-white/60', 'backdrop-blur');
-      // Remove opacity-50 from wrapper if present
       wrapper.classList.remove('opacity-50');
       btnEye.innerHTML = '✏️';
       this.enableDraggable(false);
@@ -279,7 +283,6 @@ class PockitApp {
       }
       wrapper.classList.remove('opacity-50');
       wrapper.classList.add('bg-white/60', 'backdrop-blur');
-      // Right arrow triangle for play/view
       btnEye.innerHTML = '▶️';
       this.enableDraggable(true);
     }
