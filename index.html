@@ -17,37 +17,6 @@
       // , state: '<div style="left:50%;top:50%;z-index:1000;position:absolute;">adsadasd</div>'
     });
     
-    // Register a plugin that shows the app's content as plaintext in a modal with a Reverse Button
-    const reverseModalPlugin = function(app) {
-      let modal;
-      function renderModalContent() {
-        const content = app.getContent();
-        return `
-          <pre id="pockit-modal-pre" style="white-space:pre-wrap;word-break:break-all;">${content
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')}</pre>
-          <button id="pockit-reverse-btn" style="margin-top:12px;padding:4px 12px;background:#eee;border:1px solid #bbb;cursor:pointer;">Reverse</button>
-        `;
-      }
-      modal = new Modal({
-        content: renderModalContent(),
-        onClose: () => {}
-      });
-      setTimeout(() => {
-        const reverseBtn = document.getElementById('pockit-reverse-btn');
-        if (reverseBtn) {
-          reverseBtn.onclick = () => {
-            const reversed = app.getContent().split('').reverse().join('');
-            app.setContent(reversed);
-            // Update modal content as well
-            const pre = document.getElementById('pockit-modal-pre');
-            if (pre) pre.innerHTML = reversed.replace(/</g, '&lt;').replace(/>/g, '&gt;');
-          };
-        }
-      }, 0);
-    };
-    PockitOS.loadPlugin(reverseModalPlugin, '⇄');
-
     // Register a plugin that opens a modal with a text input, sends input to an AI API, and sets content to the result
     const aiModalPlugin = function(app) {
       let modal;

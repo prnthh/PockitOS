@@ -58,13 +58,21 @@ class PockitApp {
         </div>
       </div>
       <div class="content text-gray-800" style="padding:0;">
-        <textarea class="w-full h-32 border border-gray-300 mb-0" placeholder="Type here...">${state?.value||''}</textarea>
+        <textarea class="w-full h-32 border border-gray-300 mb-0" style="resize: both;" placeholder="Type here...">${state?.value||''}</textarea>
         <div class="rendered-content w-full min-h-32 p-[1px]" style="display:none;white-space:pre-wrap;"></div>
       </div>
     `;
     this.attachIdEditHandler(wrapper.querySelector('.pockit-id-span'));
     wrapper.querySelector('.btn-close').onclick = () => { wrapper.remove(); this.onClose?.(); };
-    wrapper.querySelector('.btn-add').onclick = () => this.onAdd?.();
+    wrapper.querySelector('.btn-add').onclick = () => {
+      // Duplicate logic: get state, offset, and call onDuplicate
+      const state = this.getState();
+      // Parse left/top as px, offset by +30px right, -30px up
+      const left = (parseInt(state.left, 10) || 0) + 30;
+      const top = (parseInt(state.top, 10) || 0) - 30;
+      const newState = { ...state, left: left + 'px', top: top + 'px', id: undefined };
+      this.onDuplicate?.(newState);
+    };
     let isRendered = false;
     wrapper.querySelector('.btn-eye').onclick = () => { this.setViewMode(!isRendered); isRendered = !isRendered; };
     wrapper.querySelector('textarea').addEventListener('input', () => { if (isRendered) this.setViewMode(true); });
@@ -110,50 +118,52 @@ class PockitApp {
   makeDraggable() {
     const el = this.element, bar = el.querySelector('.title-bar');
     let offsetX = 0, offsetY = 0, isDragging = false;
-    // Mouse events
-    bar.addEventListener('mousedown', e => {
+
+    const startDrag = (pageX, pageY) => {
+      // If transform is present, convert to pixel position and remove transform
+      if (el.style.transform && el.style.transform.includes('translate')) {
+        const containerRect = el.offsetParent.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        el.style.left = (elRect.left - containerRect.left) + 'px';
+        el.style.top = (elRect.top - containerRect.top) + 'px';
+        el.style.transform = '';
+      }
+      offsetX = pageX - el.offsetLeft;
+      offsetY = pageY - el.offsetTop;
       isDragging = true;
-      const rect = el.getBoundingClientRect(), cRect = this.container.getBoundingClientRect();
-      el.style.left = `${rect.left - cRect.left}px`;
-      el.style.top = `${rect.top - cRect.top}px`;
-      el.style.transform = '';
-      offsetX = e.clientX - (rect.left - cRect.left);
-      offsetY = e.clientY - (rect.top - cRect.top);
       this.onFocus?.();
-      const onMove = e => {
-        if (!isDragging) return;
-        const cRect = this.container.getBoundingClientRect();
-        el.style.left = `${e.clientX - cRect.left - offsetX}px`;
-        el.style.top = `${e.clientY - cRect.top - offsetY}px`;
-        this.onMove?.();
-      };
-      const onUp = () => { isDragging = false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
+    };
+
+    const moveDrag = (pageX, pageY) => {
+      if (!isDragging) return;
+      el.style.left = (pageX - offsetX) + 'px';
+      el.style.top = (pageY - offsetY) + 'px';
+      this.onMove?.();
+    };
+
+    const stopDrag = () => { isDragging = false; };
+
+    // Mouse
+    bar.addEventListener('mousedown', e => {
+      startDrag(e.pageX, e.pageY);
+      const onMove = e => moveDrag(e.pageX, e.pageY);
+      const onUp = () => { stopDrag(); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
     });
-    // Touch events for mobile
+
+    // Touch
     bar.addEventListener('touchstart', e => {
       if (e.touches.length !== 1) return;
-      isDragging = true;
       const touch = e.touches[0];
-      const rect = el.getBoundingClientRect(), cRect = this.container.getBoundingClientRect();
-      el.style.left = `${rect.left - cRect.left}px`;
-      el.style.top = `${rect.top - cRect.top}px`;
-      el.style.transform = '';
-      offsetX = touch.clientX - (rect.left - cRect.left);
-      offsetY = touch.clientY - (rect.top - cRect.top);
-      this.onFocus?.();
-      const onTouchMove = e => {
-        if (!isDragging || e.touches.length !== 1) return;
-        const touch = e.touches[0];
-        const cRect = this.container.getBoundingClientRect();
-        el.style.left = `${touch.clientX - cRect.left - offsetX}px`;
-        el.style.top = `${touch.clientY - cRect.top - offsetY}px`;
-        this.onMove?.();
+      startDrag(touch.pageX, touch.pageY);
+      const onMove = e => {
+        if (e.touches.length !== 1) return;
+        moveDrag(e.touches[0].pageX, e.touches[0].pageY);
       };
-      const onTouchEnd = () => { isDragging = false; document.removeEventListener('touchmove', onTouchMove); document.removeEventListener('touchend', onTouchEnd); };
-      document.addEventListener('touchmove', onTouchMove);
-      document.addEventListener('touchend', onTouchEnd);
+      const onUp = () => { stopDrag(); document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); };
+      document.addEventListener('touchmove', onMove);
+      document.addEventListener('touchend', onUp);
     });
   }
 

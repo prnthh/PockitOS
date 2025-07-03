@@ -176,6 +176,10 @@ class PockitOS {
       PockitOS.updateMemory(this.onStateChange);
     };
     
+    app.onDuplicate = (newState) => {
+      this.createApp(newState);
+    };
+    
     // Set initial z-index
     app.setZIndex(PockitOS.zIndexCounter++);
     
@@ -250,7 +254,13 @@ class PockitOS {
       os.apps[0].element.remove();
       os.apps = [];
     }
-    PockitOS.memory.forEach(state => os.createApp(state));
+    // Restore all apps and set them to view mode
+    PockitOS.memory.forEach(state => {
+      const app = os.createApp(state);
+      if (typeof app.setViewMode === 'function') {
+        app.setViewMode(true);
+      }
+    });
     showDebugWindow();
     updateDebugWindow();
   }
