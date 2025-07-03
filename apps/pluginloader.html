@@ -1,0 +1,36 @@
+<button id="myButton" class="">Load plugin</button>
+<script>
+    setTimeout(() => {
+        document.getElementById('myButton').addEventListener('click', () => {
+            // Clock Plugin for PockitOS Menubar
+            function registerClockMenu(menubar) {
+                // Remove old clock if present
+                menubar.menubar.querySelectorAll('.pockit-clock-menu').forEach(el => el.remove());
+                
+                // Create clock element
+                const clockWrapper = document.createElement('div');
+                clockWrapper.className = 'pockit-clock-menu ml-auto mr-2 text-sm font-mono';
+                clockWrapper.style.display = 'inline-block';
+                clockWrapper.style.position = 'absolute';
+                clockWrapper.style.right = '16px';
+                clockWrapper.style.top = '0';
+                clockWrapper.style.height = '32px';
+                clockWrapper.style.lineHeight = '32px';
+                clockWrapper.style.pointerEvents = 'none';
+                
+                function updateClock() {
+                    const now = new Date();
+                    const h = now.getHours().toString().padStart(2, '0');
+                    const m = now.getMinutes().toString().padStart(2, '0');
+                    const s = now.getSeconds().toString().padStart(2, '0');
+                    clockWrapper.textContent = `${h}:${m}:${s}`;
+                }
+                updateClock();
+                setInterval(updateClock, 1000);
+                
+                menubar.menubar.appendChild(clockWrapper);
+            }
+            PockitOS.loadMenubarPlugin(registerClockMenu);
+        });
+    }, 1000);
+</script>

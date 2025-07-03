@@ -78,6 +78,8 @@ class PockitOS {
     this.apps = [];
     this.onStateChange = typeof options.onStateChange === 'function' ? options.onStateChange : null;
     injectTailwind();
+    // --- Drag-and-drop support for creating new apps ---
+    this._setupDragAndDrop();
     // Track this instance for kiosk mode
     if (!PockitOS._instances) PockitOS._instances = [];
     PockitOS._instances.push(this);
@@ -201,6 +203,15 @@ class PockitOS {
         id: element.id
       });
     });
+    // Sort by x (left), then y (top)
+    allApps.sort((a, b) => {
+      const ax = parseInt(a.left, 10) || 0;
+      const bx = parseInt(b.left, 10) || 0;
+      if (ax !== bx) return ax - bx;
+      const ay = parseInt(a.top, 10) || 0;
+      const by = parseInt(b.top, 10) || 0;
+      return ay - by;
+    });
     PockitOS.memory = allApps;
     // Generate the DOM string version (same as debug window)
     const domString = PockitOS.memory.map(state => {
@@ -282,6 +293,49 @@ class PockitOS {
   static registerMenubarPlugin(fn) {
     if (!PockitOS._menubarPlugins) PockitOS._menubarPlugins = [];
     PockitOS._menubarPlugins.push(fn);
+  }
+
+  // --- Drag-and-drop handler ---
+  _setupDragAndDrop() {
+    // Ensure body and html fill the viewport for drag-and-drop using .style
+    document.documentElement.style.minHeight = '100vh';
+    document.body.style.minHeight = '100vh';
+    // Attach to document.body so drop works anywhere
+    const dropTarget = document.body;
+    dropTarget.addEventListener('dragover', e => {
+      if (PockitOS.kioskMode) return;
+      e.preventDefault();
+      console.log('dragover event', e);
+    }, true);
+    dropTarget.addEventListener('drop', async e => {
+      e.preventDefault();
+      let content = '';
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const file = e.dataTransfer.files[0];
+        if (file.type.startsWith('image/')) {
+          const reader = new FileReader();
+          content = await new Promise(resolve => {
+            reader.onload = ev => resolve(`<img src='${ev.target.result}' style='max-width:100%;max-height:300px;'/>`);
+            reader.readAsDataURL(file);
+          });
+        } else {
+          content = file.name;
+        }
+      } else if (e.dataTransfer.getData('text/html')) {
+        content = e.dataTransfer.getData('text/html');
+      } else if (e.dataTransfer.getData('text/plain')) {
+        content = e.dataTransfer.getData('text/plain');
+      }
+      if (content) {
+        // Use viewport coordinates for drop
+        const left = e.clientX + 'px';
+        const top = e.clientY + 'px';
+        const app = this.createApp({ left, top, value: content });
+        if (typeof app.setViewMode === 'function') {
+          app.setViewMode(true);
+        }
+      }
+    }, true);
   }
 }
 

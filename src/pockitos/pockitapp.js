@@ -243,7 +243,10 @@ class PockitApp {
     const wrapper = this.element;
     this._injectedModuleScripts?.forEach(s => s.remove());
     this._injectedModuleScripts = [];
+    // Hide/show controls except btn-eye
+    const controls = this.element.querySelectorAll('.btn-sendback, .btn-add, .btn-close, .btn-plugin');
     if (isView) {
+      controls.forEach(btn => btn.style.display = 'none');
       renderedDiv.innerHTML = '';
       const tempDiv = document.createElement('div');
       tempDiv.innerHTML = textarea.value;
@@ -275,6 +278,7 @@ class PockitApp {
       btnEye.innerHTML = '✏️';
       this.enableDraggable(false);
     } else {
+      controls.forEach(btn => btn.style.display = '');
       textarea.style.display = '';
       renderedDiv.style.display = 'none';
       if (titleBar) {

@@ -10,13 +10,16 @@
   <!-- <script src="https://unpkg.com/pockit-os@latest/dist/index.umd.js"></script> -->
   <script>
     // --- PockitOS Initialization ---
-    const initialState = '<div style="left:68px;top:89px;z-index:1005;position:absolute;" id="pockit-div">hello world!</div>';
-    const os = new PockitOS(document.body, {
-      onStateChange: function(state) {
-        // State change effect (e.g., autosave)
-      },
-      state: initialState
-    });
+    fetch('./state.html')
+      .then(response => response.text())
+      .then(initialState => {
+        const os = new PockitOS(document.body, {
+          onStateChange: function(state) {
+            // State change effect (e.g., autosave)
+          },
+          state: initialState
+        });
+      });
   </script>
   <script type="module">
     import { registerAppsMenu } from './plugins/apps.js';

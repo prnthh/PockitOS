@@ -6,5 +6,6 @@
 "threejs": "/threejs.html",
 "webamp": "/webamp.html",
 "pockit": "/pockit.html",
-"cultchat": "/cultchat.html"
+"cultchat": "/cultchat.html",
+"pluginloader": "/pluginloader.html"
 }
