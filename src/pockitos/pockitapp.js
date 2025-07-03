@@ -15,8 +15,9 @@ class PockitApp {
     // Add edit mode bg/blur Tailwind classes by default (edit mode)
     this.element.classList.add('bg-white/60', 'backdrop-blur');
     this.q('textarea').addEventListener('input', () => this.onContentChange?.());
-    // Add all plugin buttons if plugins are loaded
     if (window.PockitOS && Array.isArray(window.PockitOS._plugins)) this.addPluginButtons();
+    this.isRendered = false;
+    this.setViewMode(false); // Always start in edit mode and sync icon
   }
 
   // Dynamically add plugin buttons for all loaded plugins
@@ -47,13 +48,14 @@ class PockitApp {
     if (window.PockitOS && window.PockitOS._plugin) {
       pluginBtnHtml = `<button class="btn-plugin w-6 h-6 flex items-center justify-center bg-yellow-400 hover:bg-yellow-500 transition mr-1" style="border-radius:0;">★</button>`;
     }
+    // Change: btn-eye icon is a right arrow (▶) in edit mode
     wrapper.innerHTML = `
       <div class="title-bar flex items-center justify-between px-3 py-2 bg-gray-800 cursor-move select-none" style="border-radius:0;padding:0;opacity:1;">
         <span class='text-xs text-gray-300 ml-2 pockit-id-span'>[${idToShow}]</span>
         <div class="buttons flex">
           ${pluginBtnHtml}
-          <button class="btn-add w-6 h-6 flex items-center justify-center bg-green-500 hover:bg-green-600 transition" style="border-radius:0;">+</button>
-          <button class="btn-eye w-6 h-6 flex items-center justify-center bg-blue-500 hover:bg-blue-600 transition" style="border-radius:0;">👁️</button>
+          <button class="btn-add w-6 h-6 flex items-center justify-center bg-green-500 hover:bg-green-600 transition" style="border-radius:0;">👯‍♀️</button>
+          <button class="btn-eye w-6 h-6 flex items-center justify-center bg-blue-500 hover:bg-blue-600 transition" style="border-radius:0;">✏️</button>
           <button class="btn-close w-6 h-6 flex items-center justify-center bg-red-500 hover:bg-red-600 transition" style="border-radius:0;">🗑️</button>
         </div>
       </div>
@@ -73,9 +75,10 @@ class PockitApp {
       const newState = { ...state, left: left + 'px', top: top + 'px', id: undefined };
       this.onDuplicate?.(newState);
     };
-    let isRendered = false;
-    wrapper.querySelector('.btn-eye').onclick = () => { this.setViewMode(!isRendered); isRendered = !isRendered; };
-    wrapper.querySelector('textarea').addEventListener('input', () => { if (isRendered) this.setViewMode(true); });
+    wrapper.querySelector('.btn-eye').onclick = () => {
+      this.setViewMode(!this.isRendered);
+    };
+    wrapper.querySelector('textarea').addEventListener('input', () => { if (this.isRendered) this.setViewMode(true); });
     // Plugin button handler
     if (window.PockitOS && window.PockitOS._plugin) {
       const btnPlugin = wrapper.querySelector('.btn-plugin');
@@ -187,7 +190,6 @@ class PockitApp {
     const btnEye = this.q('.btn-eye'), textarea = this.q('textarea'), renderedDiv = this.q('.rendered-content'), titleBar = this.q('.title-bar');
     if (!btnEye) return;
     const wrapper = this.element;
-    // Always remove previously injected scripts
     this._injectedModuleScripts?.forEach(s => s.remove());
     this._injectedModuleScripts = [];
     if (isView) {
@@ -213,16 +215,28 @@ class PockitApp {
       while (tempDiv.firstChild) renderedDiv.appendChild(tempDiv.firstChild);
       textarea.style.display = 'none';
       renderedDiv.style.display = '';
-      if (titleBar) titleBar.style.opacity = '0.5';
+      if (titleBar) {
+        titleBar.style.opacity = '0.5';
+        titleBar.classList.add('opacity-50');
+      }
       wrapper.classList.remove('bg-white/60', 'backdrop-blur');
+      // Remove opacity-50 from wrapper if present
+      wrapper.classList.remove('opacity-50');
+      btnEye.innerHTML = '✏️';
     } else {
       textarea.style.display = '';
       renderedDiv.style.display = 'none';
-      if (titleBar) titleBar.style.opacity = '1';
+      if (titleBar) {
+        titleBar.style.opacity = '1';
+        titleBar.classList.remove('opacity-50');
+      }
+      wrapper.classList.remove('opacity-50');
       wrapper.classList.add('bg-white/60', 'backdrop-blur');
+      // Right arrow triangle for play/view
+      btnEye.innerHTML = '▶️';
     }
-    btnEye.textContent = '👁️';
     this.element.style.border = 'none';
+    this.isRendered = isView;
   }
 }
 

@@ -55,6 +55,8 @@ export default class SaveMenu {
             textarea.value = match[1].trim();
             // Trigger input event to restore
             textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            // Close the modal after successful load
+            modal.close();
           }
         };
         reader.readAsText(file);

@@ -9,12 +9,14 @@
   <script src="dist/index.umd.js"></script>
   <!-- <script src="https://unpkg.com/pockit-os@latest/dist/index.umd.js"></script> -->
   <script>
+    const initialState = '<div style="left:68px;top:89px;z-index:1005;position:absolute;" id="pockit-div">hello world!</div>'
+
     // Example: Load a window from a DOM string at startup
     new PockitOS(document.body, {
       onStateChange: function(state) {
         // console.log('PockitOS state changed:', state);
-      }
-      // , state: '<div style="left:50%;top:50%;z-index:1000;position:absolute;">adsadasd</div>'
+      }, 
+      state: initialState
     });
     
     // Register a plugin that opens a modal with a text input, sends input to an AI API, and sets content to the result

@@ -86,18 +86,21 @@ class PockitOS {
     // Add SaveMenu instance
     this.saveMenu = new SaveMenu(PockitOS);
 
-    // If state is a DOM string (starts with <div), parse and restore
+    // --- Fix: Always run menubar/plugin setup, even if restoring from DOM string ---
+    let restoringFromDOM = false;
     if (typeof options.state === 'string' && options.state.trim().startsWith('<div')) {
-      PockitOS.restoreAll(container, options.state);
-      return;
+      restoringFromDOM = true;
+      // Set a flag so restoreAll knows not to create a new PockitOS
+      this._restoringFromDOM = true;
+      PockitOS.restoreAll(container, options.state, this);
     }
     // If state is an array of objects, restore as before
-    if (Array.isArray(options.state) && options.state.length > 0) {
+    else if (Array.isArray(options.state) && options.state.length > 0) {
       PockitOS.memory = options.state;
       options.state.forEach(s => this.createApp(s));
     } else if (options.state) {
       this.createApp(options.state);
-    } else {
+    } else if (!restoringFromDOM) {
       this.createApp();
     }
 
@@ -211,8 +214,9 @@ class PockitOS {
 
   /**
    * Accepts an optional DOM string to restore from, otherwise uses debug textarea.
+   * Optionally accepts an existing PockitOS instance to avoid double-instantiation.
    */
-  static restoreAll(container = document.body, domString = null) {
+  static restoreAll(container = document.body, domString = null, existingOS = null) {
     document.querySelectorAll('.pockit-os-window').forEach(el => el.remove());
     let val = domString;
     if (!val) {
@@ -248,8 +252,8 @@ class PockitOS {
         PockitOS.memory = divs;
       }
     }
-    // Create a new PockitOS instance which will handle the restoration
-    const os = new PockitOS(container);
+    // Use existing PockitOS instance if provided (prevents double menubar/plugins)
+    const os = existingOS || new PockitOS(container);
     if (os.apps.length > 0) {
       os.apps[0].element.remove();
       os.apps = [];
@@ -261,8 +265,8 @@ class PockitOS {
         app.setViewMode(true);
       }
     });
-    showDebugWindow();
-    updateDebugWindow();
+    if (typeof showDebugWindow === 'function') showDebugWindow();
+    if (typeof updateDebugWindow === 'function') updateDebugWindow();
   }
 
   static loadPlugin(fn, icon = '★') {
