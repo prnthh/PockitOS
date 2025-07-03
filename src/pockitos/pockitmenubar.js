@@ -30,7 +30,7 @@ class PockitMenubar {
     menuWrapper.appendChild(btn);
 
     const dropdown = document.createElement('div');
-    dropdown.className = 'absolute left-0 mt-1 bg-white text-black border border-gray-300 shadow-lg rounded hidden group-hover:block';
+    dropdown.className = 'absolute left-0 mt-1 bg-white text-black border border-gray-300 shadow-lg rounded hidden';
     dropdown.style.minWidth = '160px';
     dropdown.style.zIndex = 100001;
 

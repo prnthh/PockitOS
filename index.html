@@ -9,83 +9,20 @@
   <script src="dist/index.umd.js"></script>
   <!-- <script src="https://unpkg.com/pockit-os@latest/dist/index.umd.js"></script> -->
   <script>
-    const initialState = '<div style="left:68px;top:89px;z-index:1005;position:absolute;" id="pockit-div">hello world!</div>'
-
-    // Example: Load a window from a DOM string at startup
-    new PockitOS(document.body, {
+    // --- PockitOS Initialization ---
+    const initialState = '<div style="left:68px;top:89px;z-index:1005;position:absolute;" id="pockit-div">hello world!</div>';
+    const os = new PockitOS(document.body, {
       onStateChange: function(state) {
-        // console.log('PockitOS state changed:', state);
-      }, 
+        // State change effect (e.g., autosave)
+      },
       state: initialState
     });
-    
-    // Register a plugin that opens a modal with a text input, sends input to an AI API, and sets content to the result
-    const aiModalPlugin = function(app) {
-      let modal;
-      function renderModalContent() {
-        return `
-          <input id="pockit-ai-input" type="text" placeholder="Ask AI..." style="width:90%;padding:6px;margin-bottom:8px;border:1px solid #bbb;" />
-          <button id="pockit-ai-submit" style="padding:4px 12px;background:#eee;border:1px solid #bbb;cursor:pointer;">Ask</button>
-          <div id="pockit-ai-result" style="margin-top:12px;white-space:pre-wrap;"></div>
-        `;
-      }
-      modal = new Modal({
-        content: renderModalContent(),
-        onClose: () => {}
-      });
-      setTimeout(() => {
-        const input = document.getElementById('pockit-ai-input');
-        const submit = document.getElementById('pockit-ai-submit');
-        const resultDiv = document.getElementById('pockit-ai-result');
-        if (submit && input) {
-          submit.onclick = async () => {
-            const prompt = input.value;
-            resultDiv.textContent = 'Thinking...';
-            try {
-              // Replace the URL below with your actual AI API endpoint
-              const response = await fetch('https://api.example.com/ai', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
-              });
-              const data = await response.json();
-              const aiText = data.result || data.text || 'No response';
-              app.setContent(aiText);
-              resultDiv.textContent = aiText;
-            } catch (e) {
-              resultDiv.textContent = 'Error contacting AI.';
-            }
-          };
-        }
-      }, 0);
-    };
+  </script>
+  <script type="module">
+    import { registerAppsMenu } from './plugins/apps.js';
+    PockitOS.loadMenubarPlugin(registerAppsMenu);
+    import { aiModalPlugin } from './plugins/llm.js';
     PockitOS.loadPlugin(aiModalPlugin, '🤖');
-
-    // Register Apps menu as a menubar plugin using the new loadMenubarPlugin API
-    const appsBaseUrl = 'https://raw.githubusercontent.com/prnthh/PockitOS/refs/heads/main/apps/';
-    PockitOS.loadMenubarPlugin((menubar, osInstance) => {
-      menubar.addMenu('Apps', [{ label: 'Loading...', onClick: () => {} }]);
-      fetch(`${appsBaseUrl}listing.json`)
-        .then(r => r.json())
-        .then(listing => {
-          const appEntries = Object.entries(listing);
-          const appOptions = appEntries.map(([name, url]) => ({
-            label: name,
-            onClick: () => {
-              fetch(appsBaseUrl + url)
-                .then(r => r.text())
-                .then(html => {
-                  osInstance.createApp({ value: html });
-                });
-            }
-          }));
-          // Remove old Apps menu if present
-          menubar.menubar.querySelectorAll('.relative.group').forEach(menu => {
-            if (menu.textContent && menu.textContent.includes('Apps')) menu.remove();
-          });
-          menubar.addMenu('Apps', appOptions);
-        });
-    });
   </script>
 </body>
 </html>

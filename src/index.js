@@ -22,16 +22,17 @@ class PockitOS {
   static _plugin = null;
   static _plugins = [];
   static _menubarPlugins = [];
+  static _instances = [];
   static loadMenubarPlugin(fn) {
     if (!PockitOS._menubarPlugins) PockitOS._menubarPlugins = [];
     PockitOS._menubarPlugins.push(fn);
     // Inject into existing menubar if present
-    if (window.PockitOS && window.PockitOS._instances) {
-      window.PockitOS._instances.forEach(os => {
+    if (PockitOS._instances && PockitOS._instances.length) {
+      PockitOS._instances.forEach(os => {
         const menubar = document.querySelector('.pockit-menubar');
         if (menubar && os) {
           // Find the PockitMenubar instance
-          const mb = window.PockitMenubar?.instances?.[0] || null;
+          const mb = (typeof window !== 'undefined' ? window.PockitMenubar?.instances?.[0] : null) || null;
           if (mb) {
             try { fn(mb, os); } catch (e) { /* ignore plugin errors */ }
           }
@@ -53,8 +54,8 @@ class PockitOS {
       bar.style.display = enabled ? 'none' : '';
     });
     // Switch all apps to view mode in kiosk and re-render content
-    if (window.PockitOS && window.PockitOS._instances) {
-      window.PockitOS._instances.forEach(os => {
+    if (PockitOS._instances && PockitOS._instances.length) {
+      PockitOS._instances.forEach(os => {
         if (os.apps) os.apps.forEach(app => {
           if (enabled) {
             app.setViewMode(false); // force to edit mode first to reset
@@ -78,10 +79,8 @@ class PockitOS {
     this.onStateChange = typeof options.onStateChange === 'function' ? options.onStateChange : null;
     injectTailwind();
     // Track this instance for kiosk mode
-    if (typeof window !== 'undefined') {
-      if (!window.PockitOS._instances) window.PockitOS._instances = [];
-      window.PockitOS._instances.push(this);
-    }
+    if (!PockitOS._instances) PockitOS._instances = [];
+    PockitOS._instances.push(this);
 
     // Add SaveMenu instance
     this.saveMenu = new SaveMenu(PockitOS);
@@ -273,8 +272,8 @@ class PockitOS {
     if (!PockitOS._plugins) PockitOS._plugins = [];
     PockitOS._plugins.push({ handler: fn, icon });
     // Inject plugin buttons into all existing apps (no redraw)
-    if (window.PockitOS && window.PockitOS._instances) {
-      window.PockitOS._instances.forEach(os => {
+    if (PockitOS._instances && PockitOS._instances.length) {
+      PockitOS._instances.forEach(os => {
         if (os.apps) os.apps.forEach(app => app.addPluginButtons());
       });
     }

@@ -1,48 +1,33 @@
 // Modal component: renders a fixed, centered modal with custom content and a close button
 class Modal {
   constructor({ content = '', onClose = null } = {}) {
-    this.content = content;
+    this.content = null; // Will be set to contentDiv DOM node
     this.onClose = typeof onClose === 'function' ? onClose : null;
-    this.element = this.createModal();
+    this.element = this.createModal(content);
     document.body.appendChild(this.element);
   }
 
-  createModal() {
+  createModal(content) {
     const overlay = document.createElement('div');
-    overlay.style.position = 'fixed';
-    overlay.style.top = '0';
-    overlay.style.left = '0';
-    overlay.style.width = '100vw';
-    overlay.style.height = '100vh';
-    overlay.style.background = 'rgba(0,0,0,0.3)';
-    overlay.style.zIndex = 1000000;
-    overlay.style.display = 'flex';
-    overlay.style.alignItems = 'center';
-    overlay.style.justifyContent = 'center';
+    overlay.className = 'fixed inset-0 w-screen h-screen bg-black/30 z-[1000000] flex items-center justify-center';
 
     const modal = document.createElement('div');
-    modal.className = 'pockit-modal bg-white rounded shadow-lg p-6 max-w-md w-full relative';
-    modal.style.position = 'relative';
-    modal.style.boxShadow = '0 4px 32px rgba(0,0,0,0.18)';
+    modal.className = 'pockit-modal bg-white border border-black min-w-0 md:min-w-[600px] max-w-[95vw] relative flex p-6 shadow-[0_4px_32px_rgba(0,0,0,0.18)]';
 
     const closeBtn = document.createElement('button');
     closeBtn.textContent = '×';
     closeBtn.setAttribute('aria-label', 'Close');
-    closeBtn.style.position = 'absolute';
-    closeBtn.style.top = '12px';
-    closeBtn.style.right = '16px';
-    closeBtn.style.fontSize = '1.5rem';
-    closeBtn.style.background = 'none';
-    closeBtn.style.border = 'none';
-    closeBtn.style.cursor = 'pointer';
+    closeBtn.className = 'absolute top-0 right-[10px] text-[1.5rem] bg-none border-none cursor-pointer';
     closeBtn.onclick = () => this.close();
 
     const contentDiv = document.createElement('div');
-    if (typeof this.content === 'string') {
-      contentDiv.innerHTML = this.content;
-    } else if (this.content instanceof Node) {
-      contentDiv.appendChild(this.content);
+    contentDiv.className = 'w-full flex flex-col';
+    if (typeof content === 'string') {
+      contentDiv.innerHTML = content;
+    } else if (content instanceof Node) {
+      contentDiv.appendChild(content);
     }
+    this.content = contentDiv; // Expose the DOM node
 
     modal.appendChild(closeBtn);
     modal.appendChild(contentDiv);

@@ -121,8 +121,15 @@ class PockitApp {
   makeDraggable() {
     const el = this.element, bar = el.querySelector('.title-bar');
     let offsetX = 0, offsetY = 0, isDragging = false;
+    const GRID = 20; // px
+    let shiftKey = false;
 
-    const startDrag = (pageX, pageY) => {
+    const snap = v => Math.round(v / GRID) * GRID;
+
+    // Store handlers for later removal
+    this._dragHandlers = this._dragHandlers || {};
+
+    const startDrag = (pageX, pageY, shift = false) => {
       // If transform is present, convert to pixel position and remove transform
       if (el.style.transform && el.style.transform.includes('translate')) {
         const containerRect = el.offsetParent.getBoundingClientRect();
@@ -134,40 +141,71 @@ class PockitApp {
       offsetX = pageX - el.offsetLeft;
       offsetY = pageY - el.offsetTop;
       isDragging = true;
+      shiftKey = shift;
       this.onFocus?.();
     };
 
-    const moveDrag = (pageX, pageY) => {
+    const moveDrag = (pageX, pageY, shift = false) => {
       if (!isDragging) return;
-      el.style.left = (pageX - offsetX) + 'px';
-      el.style.top = (pageY - offsetY) + 'px';
+      let left = pageX - offsetX;
+      let top = pageY - offsetY;
+      if (shift || shiftKey) {
+        left = snap(left);
+        top = snap(top);
+      }
+      el.style.left = left + 'px';
+      el.style.top = top + 'px';
       this.onMove?.();
     };
 
     const stopDrag = () => { isDragging = false; };
 
-    // Mouse
-    bar.addEventListener('mousedown', e => {
-      startDrag(e.pageX, e.pageY);
-      const onMove = e => moveDrag(e.pageX, e.pageY);
+    // Mouse handlers
+    this._dragHandlers.mouseDown = e => {
+      if (!this._draggableEnabled) return;
+      startDrag(e.pageX, e.pageY, e.shiftKey);
+      const onMove = e => moveDrag(e.pageX, e.pageY, e.shiftKey);
       const onUp = () => { stopDrag(); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
-    });
-
-    // Touch
-    bar.addEventListener('touchstart', e => {
+    };
+    // Touch handlers
+    this._dragHandlers.touchStart = e => {
+      if (!this._draggableEnabled) return;
       if (e.touches.length !== 1) return;
       const touch = e.touches[0];
-      startDrag(touch.pageX, touch.pageY);
+      startDrag(touch.pageX, touch.pageY, shiftKey);
       const onMove = e => {
         if (e.touches.length !== 1) return;
-        moveDrag(e.touches[0].pageX, e.touches[0].pageY);
+        moveDrag(e.touches[0].pageX, e.touches[0].pageY, shiftKey);
       };
       const onUp = () => { stopDrag(); document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); };
       document.addEventListener('touchmove', onMove);
       document.addEventListener('touchend', onUp);
-    });
+    };
+    // Shift key tracking
+    this._dragHandlers.keyDown = e => { if (e.key === 'Shift') shiftKey = true; };
+    this._dragHandlers.keyUp = e => { if (e.key === 'Shift') shiftKey = false; };
+
+    // Attach by default (edit mode)
+    this.enableDraggable(true);
+  }
+
+  enableDraggable(enable) {
+    const el = this.element, bar = el.querySelector('.title-bar');
+    this._draggableEnabled = enable;
+    if (!this._dragHandlers) return;
+    if (enable) {
+      bar.addEventListener('mousedown', this._dragHandlers.mouseDown);
+      bar.addEventListener('touchstart', this._dragHandlers.touchStart);
+      window.addEventListener('keydown', this._dragHandlers.keyDown);
+      window.addEventListener('keyup', this._dragHandlers.keyUp);
+    } else {
+      bar.removeEventListener('mousedown', this._dragHandlers.mouseDown);
+      bar.removeEventListener('touchstart', this._dragHandlers.touchStart);
+      window.removeEventListener('keydown', this._dragHandlers.keyDown);
+      window.removeEventListener('keyup', this._dragHandlers.keyUp);
+    }
   }
 
   q(sel) { return this.element.querySelector(sel); }
@@ -177,6 +215,13 @@ class PockitApp {
   getState() { return { left: this.element.style.left, top: this.element.style.top, zIndex: this.element.style.zIndex, value: this.getContent(), id: this.id }; }
   setZIndex(z) { this.element.style.zIndex = z; }
 
+  // Helper to update memory after any mutation
+  updateMemory() {
+    if (window.PockitOS && typeof window.PockitOS.updateMemory === 'function') {
+      window.PockitOS.updateMemory(window.PockitOS._instances?.[0]?.onStateChange);
+    }
+  }
+
   setId(newId) {
     if (!newId) return;
     this.id = newId;
@@ -184,6 +229,7 @@ class PockitApp {
     const idSpan = this.q('.pockit-id-span');
     if (idSpan) idSpan.textContent = `[${this.id}]`;
     this.onContentChange?.();
+    this.updateMemory();
   }
 
   setViewMode(isView) {
@@ -223,6 +269,7 @@ class PockitApp {
       // Remove opacity-50 from wrapper if present
       wrapper.classList.remove('opacity-50');
       btnEye.innerHTML = '✏️';
+      this.enableDraggable(false);
     } else {
       textarea.style.display = '';
       renderedDiv.style.display = 'none';
@@ -234,6 +281,7 @@ class PockitApp {
       wrapper.classList.add('bg-white/60', 'backdrop-blur');
       // Right arrow triangle for play/view
       btnEye.innerHTML = '▶️';
+      this.enableDraggable(true);
     }
     this.element.style.border = 'none';
     this.isRendered = isView;
