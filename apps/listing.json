@@ -1,0 +1,7 @@
+{
+"background": "/apps/background.html",
+"glsl": "/apps/glsl.html",
+"threejs": "/apps/threejs.html",
+"webamp": "/apps/webamp.html",
+"cultchat": "/apps/cultchat.html"
+}

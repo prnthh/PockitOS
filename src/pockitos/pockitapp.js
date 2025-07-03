@@ -110,6 +110,7 @@ class PockitApp {
   makeDraggable() {
     const el = this.element, bar = el.querySelector('.title-bar');
     let offsetX = 0, offsetY = 0, isDragging = false;
+    // Mouse events
     bar.addEventListener('mousedown', e => {
       isDragging = true;
       const rect = el.getBoundingClientRect(), cRect = this.container.getBoundingClientRect();
@@ -129,6 +130,30 @@ class PockitApp {
       const onUp = () => { isDragging = false; document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); };
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
+    });
+    // Touch events for mobile
+    bar.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) return;
+      isDragging = true;
+      const touch = e.touches[0];
+      const rect = el.getBoundingClientRect(), cRect = this.container.getBoundingClientRect();
+      el.style.left = `${rect.left - cRect.left}px`;
+      el.style.top = `${rect.top - cRect.top}px`;
+      el.style.transform = '';
+      offsetX = touch.clientX - (rect.left - cRect.left);
+      offsetY = touch.clientY - (rect.top - cRect.top);
+      this.onFocus?.();
+      const onTouchMove = e => {
+        if (!isDragging || e.touches.length !== 1) return;
+        const touch = e.touches[0];
+        const cRect = this.container.getBoundingClientRect();
+        el.style.left = `${touch.clientX - cRect.left - offsetX}px`;
+        el.style.top = `${touch.clientY - cRect.top - offsetY}px`;
+        this.onMove?.();
+      };
+      const onTouchEnd = () => { isDragging = false; document.removeEventListener('touchmove', onTouchMove); document.removeEventListener('touchend', onTouchEnd); };
+      document.addEventListener('touchmove', onTouchMove);
+      document.addEventListener('touchend', onTouchEnd);
     });
   }
 

@@ -3,10 +3,11 @@
 <head>
   <title>Test UMD Package</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
   <script src="dist/index.umd.js"></script>
-  <!-- <script src="https://unpkg.com/pockit-os/dist/index.umd.js"></script> -->
+  <!-- <script src="https://unpkg.com/pockit-os@latest/dist/index.umd.js"></script> -->
   <script>
     // Example: Load a window from a DOM string at startup
     new PockitOS(document.body, {
@@ -16,7 +17,7 @@
       // , state: '<div style="left:50%;top:50%;z-index:1000;position:absolute;">adsadasd</div>'
     });
     
-    // Register a plugin that shows the app's content as plaintext in a modal with a Reverse button
+    // Register a plugin that shows the app's content as plaintext in a modal with a Reverse Button
     const reverseModalPlugin = function(app) {
       let modal;
       function renderModalContent() {

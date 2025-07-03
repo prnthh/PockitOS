@@ -1,6 +1,6 @@
 {
   "name": "pockit-os",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Pockit native OS",
   "main": "dist/index.umd.js",
   "module": "src/index.js",

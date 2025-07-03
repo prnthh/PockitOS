@@ -108,11 +108,37 @@ class PockitOS {
           label: 'About',
           onClick: () => {
             new Modal({
-              content: `<div class='text-center'><h2 class='text-lg font-bold mb-2'>About PockitOS</h2><p class='mb-2'>PockitOS is a lightweight, modular web OS for running and managing Pockit apps in your browser.</p><p class='text-xs text-gray-500'>© 2025 prnth</p></div>`
+              content: `<div class='text-center'><h2 class='text-lg font-bold mb-2'>About PockitOS</h2><p class='mb-2'><a target="_blank" href="https://github.com/prnthh/PockitOS">PockitOS</a> is a lightweight, modular web OS for running and managing Pockit apps in your browser.</p><p class='text-xs text-gray-500'>© 2025 prnth</p></div>`
             });
           }
         }
       ]);
+      // --- Apps menu plugin ---
+      menubar.addMenu('Apps', [
+        {
+          label: 'Loading...',
+          onClick: () => {}
+        }
+      ]);
+      // Fetch and populate the Apps menu
+      fetch('apps/listing.json')
+        .then(r => r.json())
+        .then(listing => {
+          const appEntries = Object.entries(listing);
+          const appOptions = appEntries.map(([name, url]) => ({
+            label: name,
+            onClick: () => {
+              fetch(url)
+                .then(r => r.text())
+                .then(html => {
+                  this.createApp({ value: html });
+                });
+            }
+          }));
+          // Replace the Apps menu with real options
+          menubar.menubar.querySelectorAll('.relative.group')[1]?.remove();
+          menubar.addMenu('Apps', appOptions);
+        });
     }
     // Remove floating debug window if present
     const dbg = document.getElementById('pockit-debug-window');
