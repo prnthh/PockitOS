@@ -27,7 +27,7 @@ export default class SaveMenu {
       const textarea = document.getElementById('pockit-debug-textarea');
       textarea.style.display = 'none';
       textarea.value = this.PockitOS.memory.map(state => {
-        return `<div style=\"left:${state.left};top:${state.top};z-index:${state.zIndex};position:absolute;\" id=\"${state.id || ''}\">${state.value}</div>`;
+        return `<div style=\"left:${state.left};top:${state.top};z-index:${state.zIndex};position:absolute;white-space:pre-wrap;\" id=\"${state.id || ''}\">${state.value}</div>`;
       }).join('\n\n');
       // File input for loading HTML
       let fileInput = document.getElementById('pockit-load-file-input');

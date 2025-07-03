@@ -1,6 +1,17 @@
 // AI Modal Plugin for PockitOS
 function $(parent, sel) { return parent.querySelector(sel); }
 
+function buildApiUrl(endpoint, path) {
+  try {
+    const u = new URL(endpoint);
+    u.pathname = path;
+    u.search = '';
+    return u.toString();
+  } catch {
+    return endpoint.replace(/\/v1\/.*/, path);
+  }
+}
+
 async function pingEndpoint(input, settingsDiv) {
   try {
     const resp = await fetch(input.value, { method: 'OPTIONS' });
@@ -13,36 +24,24 @@ async function pingEndpoint(input, settingsDiv) {
 }
 
 async function fetchModels(endpoint, apiKey) {
-  // Always use the base URL for /v1/models
-  let url = 'http://localhost:11434/v1/models';
-  const res = await fetch(url, {
-    headers: {
-      ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {})
-    }
-  });
+  const url = buildApiUrl(endpoint, '/v1/models');
+  const res = await fetch(url, { headers: apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {} });
   if (!res.ok) throw new Error('Failed to fetch models');
   const data = await res.json();
   return data.data ? data.data.map(m => m.id) : [];
 }
 
 async function rewriteContent({ endpoint, apiKey, instruction, content, model }) {
-  const url = 'http://localhost:11434/v1/chat/completions';
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {})
-  };
+  const url = buildApiUrl(endpoint, '/v1/chat/completions');
+  const headers = { 'Content-Type': 'application/json', ...(apiKey ? { 'Authorization': `Bearer ${apiKey}` } : {}) };
   const body = JSON.stringify({
-    model: model,
+    model,
     messages: [
       { role: 'system', content: 'You are a helpful assistant. The user will provide some content and a rewrite instruction. Rewrite the content as per the instruction.' },
       { role: 'user', content: `Content to rewrite:\n${content}\n\nInstruction: ${instruction}` }
     ]
   });
-  const res = await fetch(url, {
-    method: 'POST',
-    headers,
-    body
-  });
+  const res = await fetch(url, { method: 'POST', headers, body });
   return res.json();
 }
 
@@ -56,7 +55,7 @@ export function aiModalPlugin(app) {
           <button id="pockit-ai-rewrite" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">Rewrite</button>
           <button id="pockit-ai-settings-toggle" class="px-2 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition" title="Show API settings">⚙️</button>
         </div>
-        <div id="pockit-ai-settings" style="display:none;" class="flex flex-col gap-2 mt-2">
+        <div id="pockit-ai-settings" class="flex flex-col gap-2 mt-2 hidden">
           <input id="pockit-ai-endpoint" type="text" value="http://localhost:11434/v1/chat/completions" placeholder="OpenAI Compatible Endpoint URL (e.g. http://localhost:11434/v1/chat/completions)" class="rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
           <input id="pockit-ai-key" type="text" placeholder="API Key (optional)" class="rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
           <select id="pockit-ai-model" class="rounded border border-gray-300 px-2 py-2 text-sm"></select>
@@ -75,7 +74,15 @@ export function aiModalPlugin(app) {
 
   resultDiv.textContent = app.getContent ? app.getContent() : '';
 
-  const handlePing = () => pingEndpoint(endpointInput, settingsDiv);
+  const handlePing = async () => {
+    try {
+      await pingEndpoint(endpointInput, settingsDiv);
+      // If ping is successful, update models
+      await loadModels();
+    } catch {
+      // pingEndpoint already handles error UI
+    }
+  };
   handlePing();
   endpointInput.addEventListener('input', handlePing);
 
@@ -97,7 +104,6 @@ export function aiModalPlugin(app) {
     }
   }
   keyInput.addEventListener('change', loadModels);
-  endpointInput.addEventListener('change', loadModels);
   loadModels();
 
   async function handleRewrite() {
@@ -125,6 +131,6 @@ export function aiModalPlugin(app) {
     }
   });
   settingsToggle.onclick = () => {
-    settingsDiv.style.display = settingsDiv.style.display === 'none' ? '' : 'none';
+    settingsDiv.classList.toggle('hidden');
   };
 }

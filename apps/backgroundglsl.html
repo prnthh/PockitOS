@@ -1,25 +1,25 @@
-<div id="shader-bg" class="fixed inset-0 z-[-1]">
-    <canvas id="shader-canvas" class="w-full h-full"></canvas>
-  </div>
-  
-  <script src="https://cdn.jsdelivr.net/gh/patriciogonzalezvivo/glslCanvas@master/dist/GlslCanvas.js"></script>
-  <script>
-    function initShader() {
-      const canvas = document.getElementById("shader-canvas");
-      if (!canvas || !window.GlslCanvas) {
-        requestAnimationFrame(initShader);
-        return;
-      }
-  
-      // Resize canvas to fill screen
-      const resizeCanvas = () => {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-      };
-      window.addEventListener('resize', resizeCanvas);
-      resizeCanvas();
-  
-      const frag = `
+<div id="shader-bg" class="fixed inset-0 z-[-1]"><canvas 
+  id="shader-canvas" class="w-full h-full"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/gh/patriciogonzalezvivo/glslCanvas@master/dist/GlslCanvas.js"></script>
+<script>
+  function initShader() {
+    const canvas = document.getElementById("shader-canvas");
+    if (!canvas || !window.GlslCanvas) {
+      requestAnimationFrame(initShader);
+      return;
+    }
+    
+    // Resize canvas to fill screen
+    const resizeCanvas = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    
+    const frag = `
         precision mediump float;
         uniform vec2 u_resolution;
         uniform float u_time;
@@ -30,11 +30,10 @@
           gl_FragColor = vec4(color, 1.0);
         }
       `;
+    
+    canvas.setAttribute("data-fragment", frag);
+    new GlslCanvas(canvas);
+  }
   
-      canvas.setAttribute("data-fragment", frag);
-      new GlslCanvas(canvas);
-    }
-  
-    initShader();
-  </script>
-  
+  initShader();
+</script>

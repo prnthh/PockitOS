@@ -20,7 +20,7 @@
       <button id="pockit-save-btn" style="font-size:11px;padding:2px 8px;border:1px solid #bbb;background:#e3f3e3;cursor:pointer;margin-left:8px;">Save</button>
       <button id="pockit-viewraw-btn" style="font-size:11px;padding:2px 8px;border:1px solid #bbb;background:#e3e3f3;cursor:pointer;margin-left:8px;">View Raw</button>
     </div>
-  `}class D{constructor(t){this.PockitOS=t}show(){const t=new g({content:A(),onClose:()=>{}});setTimeout(()=>{const e=document.getElementById("pockit-debug-textarea");e.style.display="none",e.value=this.PockitOS.memory.map(r=>`<div style="left:${r.left};top:${r.top};z-index:${r.zIndex};position:absolute;" id="${r.id||""}">${r.value}</div>`).join(`
+  `}class D{constructor(t){this.PockitOS=t}show(){const t=new g({content:A(),onClose:()=>{}});setTimeout(()=>{const e=document.getElementById("pockit-debug-textarea");e.style.display="none",e.value=this.PockitOS.memory.map(r=>`<div style="left:${r.left};top:${r.top};z-index:${r.zIndex};position:absolute;white-space:pre-wrap;" id="${r.id||""}">${r.value}</div>`).join(`
 
 `);let i=document.getElementById("pockit-load-file-input");i||(i=document.createElement("input"),i.type="file",i.accept=".html,text/html",i.style.display="none",i.id="pockit-load-file-input",document.body.appendChild(i)),document.getElementById("pockit-restoreall-btn").onclick=()=>{i.value="",i.click()},i.onchange=r=>{const l=r.target.files[0];if(!l)return;const c=new FileReader;c.onload=d=>{const p=d.target.result,a=/<body[^>]*>([\s\S]*?)<\/body>/i.exec(p);a&&a[1]&&(e.value=a[1].trim(),e.dispatchEvent(new Event("input",{bubbles:!0})),t.close())},c.readAsText(l)},document.getElementById("pockit-save-btn").onclick=()=>{const l=`<!DOCTYPE html>
 <html>
