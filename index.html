@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Test UMD Package</title>
+  <title>PockitOS App</title>
   <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
@@ -89,6 +89,32 @@
       }, 0);
     };
     PockitOS.loadPlugin(aiModalPlugin, '🤖');
+
+    // Register Apps menu as a menubar plugin using the new loadMenubarPlugin API
+    const appsBaseUrl = 'https://raw.githubusercontent.com/prnthh/PockitOS/refs/heads/main/apps/';
+    PockitOS.loadMenubarPlugin((menubar, osInstance) => {
+      menubar.addMenu('Apps', [{ label: 'Loading...', onClick: () => {} }]);
+      fetch(`${appsBaseUrl}listing.json`)
+        .then(r => r.json())
+        .then(listing => {
+          const appEntries = Object.entries(listing);
+          const appOptions = appEntries.map(([name, url]) => ({
+            label: name,
+            onClick: () => {
+              fetch(appsBaseUrl + url)
+                .then(r => r.text())
+                .then(html => {
+                  osInstance.createApp({ value: html });
+                });
+            }
+          }));
+          // Remove old Apps menu if present
+          menubar.menubar.querySelectorAll('.relative.group').forEach(menu => {
+            if (menu.textContent && menu.textContent.includes('Apps')) menu.remove();
+          });
+          menubar.addMenu('Apps', appOptions);
+        });
+    });
   </script>
 </body>
 </html>

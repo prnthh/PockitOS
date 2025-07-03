@@ -21,6 +21,24 @@ class PockitOS {
   static kioskMode = false;
   static _plugin = null;
   static _plugins = [];
+  static _menubarPlugins = [];
+  static loadMenubarPlugin(fn) {
+    if (!PockitOS._menubarPlugins) PockitOS._menubarPlugins = [];
+    PockitOS._menubarPlugins.push(fn);
+    // Inject into existing menubar if present
+    if (window.PockitOS && window.PockitOS._instances) {
+      window.PockitOS._instances.forEach(os => {
+        const menubar = document.querySelector('.pockit-menubar');
+        if (menubar && os) {
+          // Find the PockitMenubar instance
+          const mb = window.PockitMenubar?.instances?.[0] || null;
+          if (mb) {
+            try { fn(mb, os); } catch (e) { /* ignore plugin errors */ }
+          }
+        }
+      });
+    }
+  }
 
   static setKioskMode(enabled) {
     PockitOS.kioskMode = enabled;
@@ -113,32 +131,12 @@ class PockitOS {
           }
         }
       ]);
-      // --- Apps menu plugin ---
-      menubar.addMenu('Apps', [
-        {
-          label: 'Loading...',
-          onClick: () => {}
-        }
-      ]);
-      // Fetch and populate the Apps menu
-      fetch('apps/listing.json')
-        .then(r => r.json())
-        .then(listing => {
-          const appEntries = Object.entries(listing);
-          const appOptions = appEntries.map(([name, url]) => ({
-            label: name,
-            onClick: () => {
-              fetch(url)
-                .then(r => r.text())
-                .then(html => {
-                  this.createApp({ value: html });
-                });
-            }
-          }));
-          // Replace the Apps menu with real options
-          menubar.menubar.querySelectorAll('.relative.group')[1]?.remove();
-          menubar.addMenu('Apps', appOptions);
+      // Call all registered menubar plugins
+      if (PockitOS._menubarPlugins && Array.isArray(PockitOS._menubarPlugins)) {
+        PockitOS._menubarPlugins.forEach(fn => {
+          try { fn(menubar, this); } catch (e) { /* ignore plugin errors */ }
         });
+      }
     }
     // Remove floating debug window if present
     const dbg = document.getElementById('pockit-debug-window');
@@ -266,6 +264,11 @@ class PockitOS {
         if (os.apps) os.apps.forEach(app => app.addPluginButtons());
       });
     }
+  }
+
+  static registerMenubarPlugin(fn) {
+    if (!PockitOS._menubarPlugins) PockitOS._menubarPlugins = [];
+    PockitOS._menubarPlugins.push(fn);
   }
 }
 

@@ -14,6 +14,9 @@ class PockitMenubar {
     this.menubar.style.userSelect = 'none';
     this.container.appendChild(this.menubar);
     this.menus = [];
+    // Track all instances globally
+    if (!PockitMenubar.instances) PockitMenubar.instances = [];
+    PockitMenubar.instances.push(this);
   }
 
   addMenu(label, options) {
@@ -67,6 +70,11 @@ class PockitMenubar {
     this.menubar.appendChild(menuWrapper);
     this.menus.push({ label, options });
   }
+}
+
+// Attach to window for global access
+if (typeof window !== 'undefined') {
+  window.PockitMenubar = PockitMenubar;
 }
 
 export default PockitMenubar;
