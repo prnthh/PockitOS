@@ -19,6 +19,14 @@
           },
           state: initialState
         });
+        let isKiosk = false;
+        document.addEventListener('keydown', function(e) {
+          if (e.key === 'Tab') {
+            e.preventDefault();
+            isKiosk = !isKiosk;
+            PockitOS.setKioskMode(isKiosk);
+          }
+        });
       });
   </script>
   <script type="module">

@@ -1,0 +1,35 @@
+<div class="flex items-center justify-center">
+    <button id="myButton" class="">Click Me</button>
+</div>
+<script>
+    setTimeout(() => {
+        const btn = document.getElementById('myButton');
+        if (btn) {
+            // Generate a random id
+            const randomId = 'btn_' + Math.random().toString(36).substr(2, 9);
+            btn.id = randomId;
+            btn.addEventListener('click', (e) => {
+                if (Array.isArray(PockitOS._instances) && PockitOS._instances.length > 0) {
+                    // Find the closest .pockit-os-window (the current app window)
+                    let currentWindow = e.target.closest('.pockit-os-window');
+                    let left = 100, top = 100, value = '';
+                    if (currentWindow) {
+                        left = parseInt(currentWindow.style.left, 10) || 100;
+                        top = parseInt(currentWindow.style.top, 10) || 100;
+                        // Try to get textarea value from current window
+                        const textarea = currentWindow.querySelector('textarea');
+                        if (textarea) value = textarea.value;
+                    }
+                    // Offset by 40px
+                    left += 40;
+                    top += 40;
+                    // Pass state with copied content and open in view mode
+                    const app = PockitOS._instances[0].createApp({ left: left + 'px', top: top + 'px', value });
+                    if (app && typeof app.setViewMode === 'function') {
+                        app.setViewMode(true);
+                    }
+                }
+            });
+        }
+    }, 50);
+</script>

@@ -1,0 +1,114 @@
+<div class="flex flex-col items-center justify-center">
+    <div id="counterDisplay" class="mb-4 text-lg font-semibold">Clicked 0 times</div>
+    <video id="myVideo" width="320" height="180" style="margin-bottom:1rem;" preload="metadata">
+        <source src="http://i.imgur.com/N5IjBDV.mp4" type="video/mp4">
+        Your browser does not support the video tag.
+    </video>
+    <div id="timerDisplay" class="mb-4 text-md" style="display:none">Seconds since last click: 0</div>
+    <button id="myButton" class="px-6 py-3 bg-blue-600 text-white rounded-lg shadow-lg ">Click me</button>
+</div>
+<script>
+    let count = 0;
+    let secondsSinceClick = 0;
+    let timerInterval;
+    const DEFAULT_FPS = 30;
+    const FLOWER_GAME_STATE_KEY = 'flowergamestate';
+    function saveFlowerGameState() {
+        const state = {
+            count,
+            lastClick: Date.now(),
+        };
+        localStorage.setItem(FLOWER_GAME_STATE_KEY, JSON.stringify(state));
+    }
+    function loadFlowerGameState() {
+        const stateStr = localStorage.getItem(FLOWER_GAME_STATE_KEY);
+        if (!stateStr) return null;
+        try {
+            return JSON.parse(stateStr);
+        } catch {
+            return null;
+        }
+    }
+    function checkButtonShow() {
+        const btn = document.getElementById('myButton');
+        if (btn.style.display === 'none' && secondsSinceClick >= 5) {
+            btn.style.display = '';
+        }
+    }
+    function startTimer() {
+        clearInterval(timerInterval);
+        secondsSinceClick = 0;
+        const timerDisplay = document.getElementById('timerDisplay');
+        timerDisplay.style.display = '';
+        timerDisplay.textContent = `Seconds since last click: ${secondsSinceClick}`;
+        timerInterval = setInterval(() => {
+            secondsSinceClick++;
+            timerDisplay.textContent = `Seconds since last click: ${secondsSinceClick}`;
+            checkButtonShow();
+        }, 1000);
+    }
+    function restoreFlowerGameState() {
+        const savedState = loadFlowerGameState();
+        if (savedState) {
+            count = savedState.count || 0;
+            const counterDisplay = document.getElementById('counterDisplay');
+            if (counterDisplay) {
+                counterDisplay.textContent = `Clicked ${count} times`;
+            }
+            if (savedState.lastClick) {
+                const elapsed = Math.floor((Date.now() - savedState.lastClick) / 1000);
+                secondsSinceClick = elapsed;
+                const timerDisplay = document.getElementById('timerDisplay');
+                if (timerDisplay && elapsed < 5) {
+                    timerDisplay.style.display = '';
+                    timerDisplay.textContent = `Seconds since last click: ${elapsed}`;
+                    const btn = document.getElementById('myButton');
+                    if (btn && elapsed < 5) {
+                        btn.style.display = 'none';
+                        timerInterval = setInterval(() => {
+                            secondsSinceClick++;
+                            timerDisplay.textContent = `Seconds since last click: ${secondsSinceClick}`;
+                            checkButtonShow();
+                        }, 1000);
+                    }
+                }
+            }
+        }
+    }
+    // --- Poll for DOM and restore state ---
+    function pollAndRestoreFlowerGameState() {
+        const pollInterval = setInterval(() => {
+            if (
+                document.getElementById('counterDisplay') &&
+                document.getElementById('myButton') &&
+                document.getElementById('timerDisplay')
+            ) {
+                restoreFlowerGameState();
+                clearInterval(pollInterval);
+            }
+        }, 100);
+    }
+    pollAndRestoreFlowerGameState();
+    setTimeout(() => {
+        const video = document.getElementById('myVideo');
+        document.getElementById('myButton').addEventListener('click', () => {
+            count++;
+            document.getElementById('counterDisplay').textContent = `Clicked ${count} times`;
+            startTimer();
+            saveFlowerGameState();
+            // Hide the button
+            const btn = document.getElementById('myButton');
+            btn.style.display = 'none';
+            // Advance video by 4 frames
+            let fps = DEFAULT_FPS;
+            if (video.readyState >= 2) {
+                // Try to get frameRate if available (not standard, but some browsers/extensions provide it)
+                fps = video.frameRate || DEFAULT_FPS;
+            }
+            video.pause();
+            // Advance by 4 frames
+            video.currentTime = Math.min(video.duration || Infinity, video.currentTime + 4 / fps);
+        });
+        // Removed startTimer() on page load
+    }, 1000);
+</script>

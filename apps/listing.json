@@ -7,5 +7,6 @@
 "webamp": "/webamp.html",
 "pockit": "/pockit.html",
 "cultchat": "/cultchat.html",
-"pluginloader": "/pluginloader.html"
+"pluginloader": "/pluginloader.html",
+"apploader": "/apploader.html"
 }
