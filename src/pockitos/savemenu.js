@@ -88,6 +88,10 @@ export default class SaveMenu {
       // Restore on textarea change
       textarea.addEventListener('input', () => {
         this.PockitOS.restoreAll(undefined, textarea.value);
+        // Save to localStorage after restore
+        if (this.PockitOS.onStateChange) {
+          this.PockitOS.updateMemory();
+        }
       });
     }, 0);
   }

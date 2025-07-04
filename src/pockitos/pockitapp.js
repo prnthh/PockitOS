@@ -75,6 +75,7 @@ class PockitApp {
       const top = (parseInt(state.top, 10) || 0) - 30;
       const newState = { ...state, left: left + 'px', top: top + 'px', id: undefined };
       this.onDuplicate?.(newState);
+      this.onStateChange?.(newState);
     };
     wrapper.querySelector('.btn-eye').onclick = () => {
       this.setViewMode(!this.isRendered);
@@ -222,8 +223,12 @@ class PockitApp {
 
   // Helper to update memory after any mutation
   updateMemory() {
-    if (window.PockitOS && typeof window.PockitOS.updateMemory === 'function') {
-      window.PockitOS.updateMemory(window.PockitOS._instances?.[0]?.onStateChange);
+    // Use the instance method if available
+    if (window.PockitOS && Array.isArray(window.PockitOS._instances) && window.PockitOS._instances.length > 0) {
+      const os = window.PockitOS._instances[0];
+      if (typeof os.updateMemory === 'function') {
+        os.updateMemory();
+      }
     }
   }
 

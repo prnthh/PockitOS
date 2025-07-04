@@ -15,6 +15,9 @@ export async function registerAppsMenu(menubar, osInstance) {
         onClick: async () => {
           const html = await (await fetch(baseUrl + url)).text();
           osInstance.createApp({ value: html });
+          if (typeof osInstance.updateMemory === 'function') {
+            osInstance.updateMemory();
+          }
         }
       }));
     } catch (e) {

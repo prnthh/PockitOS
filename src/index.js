@@ -23,6 +23,7 @@ class PockitOS {
   static _plugins = [];
   static _menubarPlugins = [];
   static _instances = [];
+  static onStateChange = null; // Store global onStateChange
   static loadMenubarPlugin(fn) {
     if (!PockitOS._menubarPlugins) PockitOS._menubarPlugins = [];
     PockitOS._menubarPlugins.push(fn);
@@ -78,6 +79,9 @@ class PockitOS {
     this.container = container;
     this.apps = [];
     this.onStateChange = typeof options.onStateChange === 'function' ? options.onStateChange : null;
+    if (this.onStateChange) {
+      PockitOS.onStateChange = this.onStateChange;
+    }
     injectTailwind();
     // --- Drag-and-drop support for creating new apps ---
     this._setupDragAndDrop();
@@ -86,7 +90,7 @@ class PockitOS {
     PockitOS._instances.push(this);
 
     // Add SaveMenu instance
-    this.saveMenu = new SaveMenu(PockitOS);
+    this.saveMenu = new SaveMenu(this);
 
     // --- Fix: Always run menubar/plugin setup, even if restoring from DOM string ---
     let restoringFromDOM = false;
@@ -94,7 +98,7 @@ class PockitOS {
       restoringFromDOM = true;
       // Set a flag so restoreAll knows not to create a new PockitOS
       this._restoringFromDOM = true;
-      PockitOS.restoreAll(container, options.state, this);
+      this.restoreAll(container, options.state);
     }
     // If state is an array of objects, restore as before
     else if (Array.isArray(options.state) && options.state.length > 0) {
@@ -170,7 +174,7 @@ class PockitOS {
       if (index !== -1) {
         this.apps.splice(index, 1);
       }
-      PockitOS.updateMemory(this.onStateChange);
+      this.updateMemory();
     };
     
     app.onAdd = () => {
@@ -178,20 +182,21 @@ class PockitOS {
     };
     
     app.onContentChange = () => {
-      PockitOS.updateMemory(this.onStateChange);
+      this.updateMemory();
     };
     
     app.onFocus = () => {
       app.setZIndex(PockitOS.zIndexCounter++);
-      PockitOS.updateMemory(this.onStateChange);
+      this.updateMemory();
     };
     
     app.onMove = () => {
-      PockitOS.updateMemory(this.onStateChange);
+      this.updateMemory();
     };
     
     app.onDuplicate = (newState) => {
       this.createApp(newState);
+      this.updateMemory(); // Ensure duplicated app is saved
     };
     
     // Set initial z-index
@@ -201,7 +206,7 @@ class PockitOS {
     return app;
   }
 
-  static updateMemory(onStateChange = null) {
+  updateMemory() {
     const allApps = [];
     document.querySelectorAll('.pockit-os-window').forEach(element => {
       const textarea = element.querySelector('textarea');
@@ -222,13 +227,13 @@ class PockitOS {
       const by = parseInt(b.top, 10) || 0;
       return ay - by;
     });
-    PockitOS.memory = allApps;
+    this.memory = allApps;
     // Generate the DOM string version (same as debug window)
-    const domString = PockitOS.memory.map(state => {
+    const domString = this.memory.map(state => {
       return `<div style="left:${state.left};top:${state.top};z-index:${state.zIndex};position:absolute;" id="${state.id}">${state.value}</div>`;
     }).join('\n\n');
-    if (typeof onStateChange === 'function') {
-      onStateChange(domString);
+    if (typeof this.onStateChange === 'function') {
+      this.onStateChange(domString);
     }
   }
 
@@ -236,7 +241,7 @@ class PockitOS {
    * Accepts an optional DOM string to restore from, otherwise uses debug textarea.
    * Optionally accepts an existing PockitOS instance to avoid double-instantiation.
    */
-  static restoreAll(container = document.body, domString = null, existingOS = null) {
+  restoreAll(container = this.container, domString = null) {
     document.querySelectorAll('.pockit-os-window').forEach(el => el.remove());
     let val = domString;
     if (!val) {
@@ -269,24 +274,24 @@ class PockitOS {
         divs.push({ left, top, zIndex, value, id });
       });
       if (divs.length > 0) {
-        PockitOS.memory = divs;
+        this.memory = divs;
       }
     }
-    // Use existing PockitOS instance if provided (prevents double menubar/plugins)
-    const os = existingOS || new PockitOS(container);
-    if (os.apps.length > 0) {
-      os.apps[0].element.remove();
-      os.apps = [];
+    if (this.apps.length > 0) {
+      this.apps[0].element.remove();
+      this.apps = [];
     }
     // Restore all apps and set them to view mode
-    PockitOS.memory.forEach(state => {
-      const app = os.createApp(state);
+    this.memory.forEach(state => {
+      const app = this.createApp(state);
       if (typeof app.setViewMode === 'function') {
         app.setViewMode(true);
       }
     });
     if (typeof showDebugWindow === 'function') showDebugWindow();
     if (typeof updateDebugWindow === 'function') updateDebugWindow();
+    // Save state after restore
+    this.updateMemory();
   }
 
   static loadPlugin(fn, icon = '★') {
