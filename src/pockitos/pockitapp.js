@@ -179,10 +179,12 @@ class PockitApp {
     this._dragHandlers.touchStart = e => {
       if (!this._draggableEnabled) return;
       if (e.touches.length !== 1) return;
+      e.preventDefault(); // Prevent page scroll on touch drag
       const touch = e.touches[0];
       startDrag(touch.pageX, touch.pageY, shiftKey);
       const onMove = e => {
         if (e.touches.length !== 1) return;
+        e.preventDefault(); // Prevent page scroll on touch move
         moveDrag(e.touches[0].pageX, e.touches[0].pageY, shiftKey);
       };
       const onUp = () => { stopDrag(); document.removeEventListener('touchmove', onMove); document.removeEventListener('touchend', onUp); };
