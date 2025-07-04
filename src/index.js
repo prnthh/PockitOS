@@ -72,8 +72,9 @@ class PockitOS {
    * @param {Object} options - Options object.
    * @param {Function} [options.onStateChange] - Callback for state changes.
    * @param {Array|String} [options.state] - State array or DOM string for restoration.
+   * @param {Object} [osMenuOptions] - Additional OS menu options (e.g., { resetMemory: true })
    */
-  constructor(container = document.body, options = {}) {
+  constructor(container = document.body, options = {}, osMenuOptions = {}) {
     this.container = container;
     this.apps = [];
     this.onStateChange = typeof options.onStateChange === 'function' ? options.onStateChange : null;
@@ -107,7 +108,7 @@ class PockitOS {
 
     if (!document.querySelector('.pockit-menubar')) {
       const menubar = new PockitMenubar(document.body);
-      menubar.addMenu('OS', [
+      const osMenuItems = [
         {
           label: 'New Window',
           onClick: () => {
@@ -134,7 +135,16 @@ class PockitOS {
             });
           }
         }
-      ]);
+      ];
+      // Add custom menu items from osMenuOptions (function pairs)
+      if (osMenuOptions && typeof osMenuOptions === 'object') {
+        Object.entries(osMenuOptions).forEach(([label, fn]) => {
+          if (typeof fn === 'function') {
+            osMenuItems.push({ label, onClick: fn });
+          }
+        });
+      }
+      menubar.addMenu('OS', osMenuItems);
       // Call all registered menubar plugins
       if (PockitOS._menubarPlugins && Array.isArray(PockitOS._menubarPlugins)) {
         PockitOS._menubarPlugins.forEach(fn => {

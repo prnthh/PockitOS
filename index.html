@@ -10,14 +10,23 @@
   <!-- <script src="https://unpkg.com/pockit-os@latest/dist/index.umd.js"></script> -->
   <script>
     // --- PockitOS Initialization ---
+    function resetMemory() {
+      localStorage.removeItem('pockitMemory');
+      location.reload();
+    }
     fetch('./state.html')
       .then(response => response.text())
       .then(initialState => {
+        // Check localStorage for pockitMemory
+        let savedState = localStorage.getItem('pockitMemory');
         const os = new PockitOS(document.body, {
           onStateChange: function(state) {
-            // State change effect (e.g., autosave)
+            // Save state to localStorage
+            localStorage.setItem('pockitMemory', state);
           },
-          state: initialState
+          state: savedState !== null ? savedState : initialState
+        }, {
+          'Reset Memory': resetMemory
         });
         let isKiosk = false;
         document.addEventListener('keydown', function(e) {
